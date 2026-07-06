@@ -1,276 +1,6 @@
 (() => {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
-  if (!AudioContextClass) {
-    window.SW_AUDIO = createSilentAudioApi();
-    return;
-  }
-
-  let ctx = null;
-  let master = null;
-  let musicGain = null;
-  let fxGain = null;
-  let stepTimer = null;
-  let step = 0;
-  let musicOn = false;
-  let mode = "menu";
-
-  const STORAGE_KEY = "sound-warriors-audio-enabled";
-  const bpm = 112;
-  const stepMs = (60_000 / bpm) / 2;
-
-  const scales = {
-    menu: [261.63, 311.13, 392.00, 466.16, 523.25, 622.25, 783.99, 932.33],
-    battle: [220.00, 261.63, 329.63, 392.00, 440.00, 523.25, 659.25, 784.00],
-    victory: [329.63, 392.00, 493.88, 659.25, 783.99]
-  };
-
-  function ensureContext() {
-    if (ctx) return ctx;
-
-    ctx = new AudioContextClass();
-    master = ctx.createGain();
-    musicGain = ctx.createGain();
-    fxGain = ctx.createGain();
-
-    master.gain.value = 0.72;
-    musicGain.gain.value = 0.24;
-    fxGain.gain.value = 0.62;
-
-    musicGain.connect(master);
-    fxGain.connect(master);
-    master.connect(ctx.destination);
-
-    return ctx;
-  }
-
-  function setMusicEnabled(enabled) {
-    ensureContext();
-    musicOn = Boolean(enabled);
-    localStorage.setItem(STORAGE_KEY, musicOn ? "1" : "0");
-    updateButton();
-
-    if (musicOn) {
-      resume().then(() => {
-        startLoop();
-        playSfx("open");
-      });
-    } else {
-      stopLoop();
-    }
-  }
-
-  function resume() {
-    ensureContext();
-    return ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
-  }
-
-  function startLoop() {
-    if (stepTimer) return;
-    step = 0;
-    tick();
-    stepTimer = window.setInterval(tick, stepMs);
-  }
-
-  function stopLoop() {
-    if (stepTimer) {
-      window.clearInterval(stepTimer);
-      stepTimer = null;
-    }
-  }
-
-  function setMode(nextMode) {
-    mode = nextMode || "menu";
-  }
-
-  function tick() {
-    if (!musicOn || !ctx) return;
-
-    const now = ctx.currentTime;
-    const scale = scales[mode] || scales.menu;
-    const progression = mode === "battle"
-      ? [0, 0, 3, 0, 4, 4, 3, 4, 0, 0, 3, 0, 5, 4, 3, 1]
-      : [0, 2, 4, 2, 5, 4, 2, 0, 3, 5, 4, 2, 0, 2, 4, 7];
-
-    const root = progression[step % progression.length];
-
-    if (step % 2 === 0) {
-      playKick(now);
-    }
-
-    if (step % 4 === 2) {
-      playSnare(now);
-    }
-
-    if (step % 1 === 0) {
-      playHat(now);
-    }
-
-    if (step % 4 === 0) {
-      playBass(scale[root % scale.length] / 2, now, 0.18);
-    }
-
-    if (step % 2 === 1) {
-      const note = scale[(root + (mode === "battle" ? 4 : 2)) % scale.length];
-      playPluck(note, now, 0.12);
-    }
-
-    if (step % 8 === 7) {
-      const note = scale[(root + 7) % scale.length] * 2;
-      playSparkle(note, now, 0.10);
-    }
-
-    step += 1;
-  }
-
-  function makeOsc(type, freq, time) {
-    const osc = ctx.createOscillator();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, time);
-    return osc;
-  }
-
-  function makeGain(value, time) {
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(value, time);
-    return gain;
-  }
-
-  function playKick(time) {
-    const osc = makeOsc("sine", 120, time);
-    const gain = makeGain(0.8, time);
-    osc.frequency.exponentialRampToValueAtTime(44, time + 0.12);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
-    osc.connect(gain).connect(musicGain);
-    osc.start(time);
-    osc.stop(time + 0.18);
-  }
-
-  function playSnare(time) {
-    const bufferSize = ctx.sampleRate * 0.08;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i += 1) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "highpass";
-    filter.frequency.value = 1300;
-    const gain = makeGain(0.22, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.09);
-    noise.connect(filter).connect(gain).connect(musicGain);
-    noise.start(time);
-    noise.stop(time + 0.1);
-  }
-
-  function playHat(time) {
-    const bufferSize = ctx.sampleRate * 0.035;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i += 1) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "highpass";
-    filter.frequency.value = 5600;
-    const gain = makeGain(mode === "battle" ? 0.10 : 0.065, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
-    noise.connect(filter).connect(gain).connect(musicGain);
-    noise.start(time);
-    noise.stop(time + 0.05);
-  }
-
-  function playBass(freq, time, duration) {
-    const osc = makeOsc("sawtooth", freq, time);
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(360, time);
-    const gain = makeGain(mode === "battle" ? 0.16 : 0.10, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    osc.connect(filter).connect(gain).connect(musicGain);
-    osc.start(time);
-    osc.stop(time + duration + 0.03);
-  }
-
-  function playPluck(freq, time, duration) {
-    const osc = makeOsc("triangle", freq, time);
-    const gain = makeGain(mode === "battle" ? 0.11 : 0.075, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    osc.connect(gain).connect(musicGain);
-    osc.start(time);
-    osc.stop(time + duration + 0.02);
-  }
-
-  function playSparkle(freq, time, duration) {
-    const osc = makeOsc("sine", freq, time);
-    const delay = ctx.createDelay();
-    delay.delayTime.value = 0.08;
-    const gain = makeGain(0.085, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    osc.connect(gain).connect(musicGain);
-    osc.connect(delay).connect(gain);
-    osc.start(time);
-    osc.stop(time + duration + 0.05);
-  }
-
-  function playSfx(name) {
-    ensureContext();
-    resume();
-    const now = ctx.currentTime;
-
-    if (name === "correct") {
-      [523.25, 659.25, 783.99, 1046.5].forEach((freq, index) => {
-        playFxTone(freq, now + index * 0.045, 0.12, "triangle", 0.18);
-      });
-      return;
-    }
-
-    if (name === "wrong") {
-      [260, 220, 185].forEach((freq, index) => {
-        playFxTone(freq, now + index * 0.055, 0.12, "sawtooth", 0.09);
-      });
-      return;
-    }
-
-    if (name === "card") {
-      [660, 880, 1320].forEach((freq, index) => {
-        playFxTone(freq, now + index * 0.07, 0.18, "sine", 0.13);
-      });
-      return;
-    }
-
-    if (name === "open") {
-      [392, 523.25, 659.25].forEach((freq, index) => {
-        playFxTone(freq, now + index * 0.08, 0.22, "triangle", 0.12);
-      });
-      return;
-    }
-
-    playFxTone(520, now, 0.08, "sine", 0.08);
-  }
-
-  function playFxTone(freq, time, duration, type, volume) {
-    const osc = makeOsc(type, freq, time);
-    const gain = makeGain(volume, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    osc.connect(gain).connect(fxGain);
-    osc.start(time);
-    osc.stop(time + duration + 0.02);
-  }
-
-  function updateButton() {
-    const button = document.querySelector("#musicToggle");
-    if (!button) return;
-    button.classList.toggle("is-on", musicOn);
-    button.setAttribute("aria-pressed", musicOn ? "true" : "false");
-    const meter = '<span class="audio-meter" aria-hidden="true"><i></i><i></i><i></i></span>';
-    button.innerHTML = `${musicOn ? meter : "♪"} ${musicOn ? "Música ON" : "Música"}`;
-  }
-
   function createSilentAudioApi() {
     return {
       enabled: () => false,
@@ -282,8 +12,299 @@
     };
   }
 
+  if (!AudioContextClass) {
+    window.SW_AUDIO = createSilentAudioApi();
+    return;
+  }
+
+  const STORAGE_KEY = "sound-warriors-audio-enabled";
+
+  let ctx = null;
+  let master = null;
+  let musicGain = null;
+  let fxGain = null;
+  let loopTimer = null;
+  let step = 0;
+  let mode = "menu";
+  let musicOn = false;
+
+  const bpm = 118;
+  const stepSeconds = 60 / bpm / 2;
+  const stepMs = stepSeconds * 1000;
+
+  const menuPattern = [392, 523.25, 622.25, 523.25, 466.16, 392, 311.13, 392];
+  const battlePattern = [220, 329.63, 392, 440, 329.63, 523.25, 392, 659.25];
+
+  function ensureContext() {
+    if (ctx) return ctx;
+
+    ctx = new AudioContextClass();
+    master = ctx.createGain();
+    musicGain = ctx.createGain();
+    fxGain = ctx.createGain();
+
+    master.gain.value = 0.95;
+    musicGain.gain.value = 0.48;
+    fxGain.gain.value = 0.85;
+
+    musicGain.connect(master);
+    fxGain.connect(master);
+    master.connect(ctx.destination);
+
+    return ctx;
+  }
+
+  async function resume() {
+    ensureContext();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+  }
+
+  async function setMusicEnabled(enabled) {
+    ensureContext();
+
+    if (enabled) {
+      try {
+        await resume();
+      } catch (error) {
+        console.warn("Sound Warriors audio resume failed", error);
+      }
+
+      musicOn = true;
+      localStorage.setItem(STORAGE_KEY, "1");
+      updateButton();
+      playSfx("test");
+      startLoop();
+      return;
+    }
+
+    musicOn = false;
+    localStorage.setItem(STORAGE_KEY, "0");
+    updateButton();
+    stopLoop();
+  }
+
+  function startLoop() {
+    stopLoop();
+    step = 0;
+    playStep();
+    loopTimer = window.setInterval(playStep, stepMs);
+  }
+
+  function stopLoop() {
+    if (loopTimer) {
+      window.clearInterval(loopTimer);
+      loopTimer = null;
+    }
+  }
+
+  function setMode(nextMode) {
+    mode = nextMode === "battle" ? "battle" : "menu";
+  }
+
+  function playStep() {
+    if (!musicOn || !ctx || ctx.state !== "running") return;
+
+    const now = ctx.currentTime;
+    const pattern = mode === "battle" ? battlePattern : menuPattern;
+    const note = pattern[step % pattern.length];
+
+    if (step % 2 === 0) playKick(now);
+    if (step % 4 === 2) playSnare(now);
+    playHiHat(now);
+
+    if (mode === "battle") {
+      playBass(note / 2, now, 0.22);
+      if (step % 2 === 1) playLead(note * 2, now, 0.16);
+    } else {
+      if (step % 2 === 0) playPad(note, now, 0.34);
+      if (step % 2 === 1) playLead(note * 2, now, 0.15);
+    }
+
+    step += 1;
+  }
+
+  function osc(type, freq, time) {
+    const node = ctx.createOscillator();
+    node.type = type;
+    node.frequency.setValueAtTime(freq, time);
+    return node;
+  }
+
+  function gain(value, time) {
+    const node = ctx.createGain();
+    node.gain.setValueAtTime(Math.max(value, 0.0001), time);
+    return node;
+  }
+
+  function playKick(time) {
+    const o = osc("sine", 145, time);
+    const g = gain(1.0, time);
+    o.frequency.exponentialRampToValueAtTime(48, time + 0.13);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+    o.connect(g).connect(musicGain);
+    o.start(time);
+    o.stop(time + 0.2);
+  }
+
+  function playSnare(time) {
+    const duration = 0.11;
+    const bufferSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i += 1) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 1100;
+
+    const g = gain(0.42, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    noise.connect(filter).connect(g).connect(musicGain);
+    noise.start(time);
+    noise.stop(time + duration);
+  }
+
+  function playHiHat(time) {
+    const duration = 0.045;
+    const bufferSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i += 1) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 5000;
+
+    const g = gain(mode === "battle" ? 0.20 : 0.14, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    noise.connect(filter).connect(g).connect(musicGain);
+    noise.start(time);
+    noise.stop(time + duration);
+  }
+
+  function playBass(freq, time, duration) {
+    const o = osc("sawtooth", freq, time);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 520;
+
+    const g = gain(0.30, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    o.connect(filter).connect(g).connect(musicGain);
+    o.start(time);
+    o.stop(time + duration + 0.03);
+  }
+
+  function playPad(freq, time, duration) {
+    const o1 = osc("triangle", freq, time);
+    const o2 = osc("sine", freq * 1.5, time);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 1200;
+
+    const g = gain(0.18, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    o1.connect(filter);
+    o2.connect(filter);
+    filter.connect(g).connect(musicGain);
+    o1.start(time);
+    o2.start(time);
+    o1.stop(time + duration + 0.03);
+    o2.stop(time + duration + 0.03);
+  }
+
+  function playLead(freq, time, duration) {
+    const o = osc("square", freq, time);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 1800;
+
+    const g = gain(mode === "battle" ? 0.18 : 0.14, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+    o.connect(filter).connect(g).connect(musicGain);
+    o.start(time);
+    o.stop(time + duration + 0.02);
+  }
+
+  function playSfx(name) {
+    ensureContext();
+    resume().then(() => {
+      const now = ctx.currentTime;
+
+      if (name === "test") {
+        [392, 523.25, 659.25, 783.99].forEach((freq, index) => {
+          playFxTone(freq, now + index * 0.08, 0.18, "triangle", 0.30);
+        });
+        return;
+      }
+
+      if (name === "correct") {
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, index) => {
+          playFxTone(freq, now + index * 0.045, 0.13, "triangle", 0.28);
+        });
+        return;
+      }
+
+      if (name === "wrong") {
+        [260, 220, 185].forEach((freq, index) => {
+          playFxTone(freq, now + index * 0.06, 0.15, "sawtooth", 0.18);
+        });
+        return;
+      }
+
+      if (name === "card") {
+        [660, 880, 1320, 1760].forEach((freq, index) => {
+          playFxTone(freq, now + index * 0.07, 0.22, "sine", 0.22);
+        });
+        return;
+      }
+
+      [392, 523.25, 659.25].forEach((freq, index) => {
+        playFxTone(freq, now + index * 0.08, 0.18, "triangle", 0.22);
+      });
+    });
+  }
+
+  function playFxTone(freq, time, duration, type, volume) {
+    const o = osc(type, freq, time);
+    const g = gain(volume, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    o.connect(g).connect(fxGain);
+    o.start(time);
+    o.stop(time + duration + 0.03);
+  }
+
+  function updateButton() {
+    const button = document.querySelector("#musicToggle");
+    if (!button) return;
+
+    button.classList.toggle("is-on", musicOn);
+    button.setAttribute("aria-pressed", musicOn ? "true" : "false");
+
+    const meter = '<span class="audio-meter" aria-hidden="true"><i></i><i></i><i></i></span>';
+    button.innerHTML = `${musicOn ? meter : "♪"} ${musicOn ? "Música ON" : "Música"}`;
+  }
+
   function init() {
-    const stored = localStorage.getItem(STORAGE_KEY) === "1";
     musicOn = false;
     updateButton();
 
@@ -296,10 +317,13 @@
     const enterWithMusic = document.querySelector("#enterWithMusic");
     const enterSilent = document.querySelector("#enterSilent");
 
-    const closeOpening = (withMusic) => {
-      if (withMusic) setMusicEnabled(true);
-      else if (stored) setMusicEnabled(true);
-      else updateButton();
+    const closeOpening = async (withMusic) => {
+      if (withMusic) {
+        await setMusicEnabled(true);
+      } else {
+        await resume();
+        playSfx("open");
+      }
 
       if (opening) {
         opening.classList.add("is-hidden");
