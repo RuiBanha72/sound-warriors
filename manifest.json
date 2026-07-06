@@ -1,0 +1,9 @@
+{
+  "name": "Sound Warriors — Academia dos Sons",
+  "short_name": "Sound Warriors",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#14061f",
+  "theme_color": "#ff4fd8",
+  "description": "Jogo educativo de consciência fonológica com missões, recompensas e Laboratório do Mestre."
+}

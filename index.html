@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sound Warriors — Academia dos Sons</title>
+  <meta name="description" content="Jogo educativo de consciência fonológica com missões, recompensas e Laboratório do Mestre.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Academia dos Sons</p>
+        <h1>Sound Warriors</h1>
+        <p class="subtitle">Uma aventura de guerreiras pop para treinar sons, letras e palavras difíceis.</p>
+      </div>
+      <div class="player-card">
+        <div class="avatar">⚔️</div>
+        <div>
+          <strong id="playerName">Simone</strong>
+          <span>Nível <b id="level">1</b> · XP <b id="xp">0</b> · 🪙 <b id="coins">0</b></span>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Navegação principal">
+      <button class="tab active" data-screen="map">Mapa</button>
+      <button class="tab" data-screen="mission">Missões</button>
+      <button class="tab" data-screen="rewards">Recompensas</button>
+      <button class="tab" data-screen="lab">Laboratório do Mestre</button>
+      <button class="tab" data-screen="progress">Progresso</button>
+    </nav>
+
+    <main>
+      <section id="screen-map" class="screen active">
+        <div class="section-title">
+          <h2>Mapa da Aventura</h2>
+          <p>Escolhe um cristal para iniciar uma campanha de sons.</p>
+        </div>
+        <div id="worlds" class="world-grid"></div>
+      </section>
+
+      <section id="screen-mission" class="screen">
+        <div class="section-title">
+          <h2>Missão ativa</h2>
+          <p id="missionIntro">Escolhe um mundo no mapa ou começa uma missão rápida.</p>
+        </div>
+        <div class="mission-card">
+          <div class="mission-meta">
+            <span id="missionBadge">Cristal F/V</span>
+            <span id="missionMode">Detetive dos Sons</span>
+          </div>
+          <h3 id="challengeTitle">Qual é a palavra correta?</h3>
+          <p id="challengePrompt" class="challenge-prompt">Carrega em “Nova missão” para começar.</p>
+          <div id="choices" class="choices"></div>
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+          <div class="actions">
+            <button id="newMissionBtn" class="primary">Nova missão</button>
+            <button id="hintBtn" class="secondary">Dica</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-rewards" class="screen">
+        <div class="section-title">
+          <h2>Cartas e Prémios</h2>
+          <p>Desbloqueia guerreiras, ataques especiais e mascotes.</p>
+        </div>
+        <div id="rewardGrid" class="reward-grid"></div>
+      </section>
+
+      <section id="screen-lab" class="screen">
+        <div class="section-title">
+          <h2>Laboratório do Mestre</h2>
+          <p>Regista erros reais para o jogo os transformar em novos monstros e desafios.</p>
+        </div>
+
+        <form id="errorForm" class="lab-form">
+          <label>
+            Palavra correta
+            <input required name="correct" placeholder="ex.: fazer">
+          </label>
+          <label>
+            Como foi escrita
+            <input required name="wrong" placeholder="ex.: faser">
+          </label>
+          <label>
+            Tipo de troca
+            <select name="pair">
+              <option value="F/V">F/V</option>
+              <option value="S/Z">S/Z</option>
+              <option value="B/P">B/P</option>
+              <option value="T/D">T/D</option>
+              <option value="CH/J">CH/J</option>
+              <option value="C/G">C/G</option>
+              <option value="L/R">L/R</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </label>
+          <label>
+            Frase onde apareceu
+            <textarea name="sentence" rows="3" placeholder="ex.: Eu vou faser uma história."></textarea>
+          </label>
+          <label>
+            Dificuldade
+            <select name="difficulty">
+              <option value="fácil">Fácil</option>
+              <option value="média">Média</option>
+              <option value="difícil">Difícil</option>
+            </select>
+          </label>
+          <button class="primary" type="submit">Adicionar novo monstro</button>
+        </form>
+
+        <div class="section-title compact">
+          <h3>Erros registados</h3>
+          <button id="exportBtn" class="secondary">Exportar JSON</button>
+        </div>
+        <div id="customErrors" class="error-list"></div>
+      </section>
+
+      <section id="screen-progress" class="screen">
+        <div class="section-title">
+          <h2>Progresso</h2>
+          <p>Resumo simples do treino acumulado neste navegador.</p>
+        </div>
+        <div id="progressCards" class="stats-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="data/sounds.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
