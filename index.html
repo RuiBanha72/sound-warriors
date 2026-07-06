@@ -7,13 +7,30 @@
   <meta name="description" content="Aventura pop com batalhas, cartas e desafios de palavras.">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/audio.css">
 </head>
 <body>
+  <div id="openingStage" class="opening-stage" role="dialog" aria-modal="true" aria-labelledby="openingTitle">
+    <div class="opening-card">
+      <div class="opening-content">
+        <div class="opening-logo">🎤</div>
+        <p class="eyebrow">Neon Pop Quest</p>
+        <h1 id="openingTitle" class="opening-title">Sound Warriors</h1>
+        <p class="opening-text">As luzes da World Tour estão a falhar. A tua equipa precisa de entrar no palco e derrotar os glitches antes do refrão final.</p>
+        <div class="opening-actions">
+          <button id="enterWithMusic" class="primary big" type="button">Entrar com música</button>
+          <button id="enterSilent" class="ghost big" type="button">Entrar sem música</button>
+        </div>
+        <small class="opening-small">Música original gerada no jogo. Sem músicas de filmes ou artistas externos.</small>
+      </div>
+    </div>
+  </div>
+
   <div class="stage-lights" aria-hidden="true"></div>
   <div class="app-shell">
     <header class="hero game-hero">
       <div class="top-controls">
-        <button id="musicToggle" class="music-toggle" type="button" aria-pressed="false">♪ Música</button>
+        <button id="musicToggle" class="music-toggle" type="button" aria-pressed="false"><span class="audio-meter" aria-hidden="true"><i></i><i></i><i></i></span>Música</button>
       </div>
       <div class="hero-copy">
         <p class="eyebrow">Neon Pop Quest</p>
@@ -181,6 +198,7 @@
   </div>
 
   <script src="data/sounds.js"></script>
+  <script src="assets/js/audio-engine.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
