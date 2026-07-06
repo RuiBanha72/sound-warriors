@@ -2,65 +2,78 @@ window.SW_DATA = {
   soundPairs: [
     {
       id: "fv",
-      title: "Cristal F/V",
+      title: "Neon City",
+      code: "F/V",
       icon: "💎",
-      description: "Treina a diferença entre F sem vibração e V com vibração.",
-      hint: "Põe os dedos na garganta. No V a garganta vibra; no F quase não vibra.",
+      glow: "rgba(255,47,179,0.38)",
+      monster: "Vox Glitch",
+      description: "Uma cidade de luzes cor-de-rosa onde os glitches trocam faíscas por vibrações.",
+      hint: "Poder secreto: toca na garganta. No V há vibração. No F sai só ar.",
       words: [
-        { correct: "faca", distractor: "vaca", prompt: "Serve para cortar pão." },
-        { correct: "vaca", distractor: "faca", prompt: "Animal que dá leite." },
-        { correct: "foto", distractor: "voto", prompt: "Imagem tirada com câmara." },
-        { correct: "vida", distractor: "fida", prompt: "O contrário de morte." },
-        { correct: "fita", distractor: "vita", prompt: "Pode servir para prender ou decorar." },
-        { correct: "vento", distractor: "fento", prompt: "Ar em movimento." }
+        { correct: "faca", distractor: "vaca", prompt: "Ataque certo para cortar o pão no palco." },
+        { correct: "vaca", distractor: "faca", prompt: "Mascote que dá leite para o batido da equipa." },
+        { correct: "foto", distractor: "voto", prompt: "Flash! O público quer guardar este momento." },
+        { correct: "vida", distractor: "fida", prompt: "Energia máxima da heroína." },
+        { correct: "fita", distractor: "vita", prompt: "Acessório brilhante para o microfone." },
+        { correct: "vento", distractor: "fento", prompt: "Rajada que empurra o glitch para longe." }
       ]
     },
     {
       id: "sz",
-      title: "Cristal S/Z",
+      title: "Zero Beat",
+      code: "S/Z",
       icon: "⚡",
-      description: "Treina palavras como fazer/faser, casa/caza e rosa/rossa.",
-      hint: "Lê devagar e procura se o som é mais suave, como em fazer, ou mais marcado.",
+      glow: "rgba(53,214,255,0.36)",
+      monster: "Zeta Noise",
+      description: "Aqui o som salta como eletricidade e o beat tenta trocar letras escondidas.",
+      hint: "Poder secreto: lê a palavra em voz baixa e procura a versão que já viste nos livros.",
       words: [
-        { correct: "fazer", distractor: "faser", prompt: "Criar ou realizar alguma coisa." },
-        { correct: "casa", distractor: "caza", prompt: "Lugar onde vivemos." },
-        { correct: "zero", distractor: "sero", prompt: "Número antes do um." },
-        { correct: "rosa", distractor: "rossa", prompt: "Flor ou cor." },
-        { correct: "mesa", distractor: "meza", prompt: "Móvel onde podemos comer ou estudar." }
+        { correct: "fazer", distractor: "faser", prompt: "A heroína vai criar um novo ataque." },
+        { correct: "casa", distractor: "caza", prompt: "Base secreta da equipa." },
+        { correct: "zero", distractor: "sero", prompt: "Número inicial do contador da batalha." },
+        { correct: "rosa", distractor: "rossa", prompt: "Cor do palco principal." },
+        { correct: "mesa", distractor: "meza", prompt: "Onde ficam as cartas raras antes do show." }
       ]
     },
     {
       id: "bp",
-      title: "Cristal B/P",
+      title: "Bubble Dome",
+      code: "B/P",
       icon: "🛡️",
-      description: "Treina sons parecidos, mas com vibração e força diferentes.",
-      hint: "No P há uma pequena explosão de ar. No B a voz entra mais cedo.",
+      glow: "rgba(170,255,95,0.26)",
+      monster: "Pop Blocker",
+      description: "Uma arena cheia de bolhas onde alguns sons explodem e outros vibram.",
+      hint: "Poder secreto: no P sai uma explosão de ar. No B a voz liga mais cedo.",
       words: [
-        { correct: "bola", distractor: "pola", prompt: "Objeto redondo para jogar." },
-        { correct: "pato", distractor: "bato", prompt: "Ave que nada." },
-        { correct: "bota", distractor: "pota", prompt: "Calçado alto." },
-        { correct: "pão", distractor: "bão", prompt: "Alimento feito com farinha." }
+        { correct: "bola", distractor: "pola", prompt: "Objeto redondo lançado pela mascote." },
+        { correct: "pato", distractor: "bato", prompt: "Animal convidado para o lago neon." },
+        { correct: "bota", distractor: "pota", prompt: "Calçado da guerreira para entrar na arena." },
+        { correct: "pão", distractor: "bão", prompt: "Snack antes do concerto." }
       ]
     },
     {
       id: "td",
-      title: "Cristal T/D",
+      title: "Thunder Stage",
+      code: "T/D",
       icon: "🔥",
-      description: "Treina pares como tia/dia e toca/docas.",
-      hint: "No T sai ar mais seco. No D há voz/vibração.",
+      glow: "rgba(255,216,107,0.31)",
+      monster: "Drum Shadow",
+      description: "O palco dos trovões, onde cada batida pode enganar o ouvido.",
+      hint: "Poder secreto: no T o ar sai seco. No D sentes mais voz.",
       words: [
-        { correct: "tia", distractor: "dia", prompt: "Irmã da mãe ou do pai." },
-        { correct: "dia", distractor: "tia", prompt: "Período de 24 horas." },
-        { correct: "dado", distractor: "tado", prompt: "Peça com números usada em jogos." },
-        { correct: "tubo", distractor: "dubo", prompt: "Canal por onde passa água ou ar." }
+        { correct: "tia", distractor: "dia", prompt: "Convidada VIP da heroína." },
+        { correct: "dia", distractor: "tia", prompt: "Tempo que dura a tour de hoje." },
+        { correct: "dado", distractor: "tado", prompt: "Cubo mágico usado para abrir prémios." },
+        { correct: "tubo", distractor: "dubo", prompt: "Canhão de luz que dispara confettis." }
       ]
     }
   ],
   rewards: [
-    { id: "aurora", name: "Aurora", title: "Guardiã do Som F", rarity: "★★★", icon: "🌟", unlockAt: 20 },
-    { id: "violet", name: "Violet", title: "Guardiã do Som V", rarity: "★★★★", icon: "💜", unlockAt: 50 },
-    { id: "nova", name: "Nova", title: "Ataque Estrela Pop", rarity: "★★★★", icon: "🎤", unlockAt: 100 },
-    { id: "luna", name: "Luna", title: "Mascote Lunar", rarity: "★★★", icon: "🐺", unlockAt: 160 },
-    { id: "rya", name: "Rya", title: "Capitã dos Cristais", rarity: "★★★★★", icon: "👑", unlockAt: 250 }
+    { id: "mika", name: "Mika Neon", title: "Vocalista Relâmpago", rarity: "★★★", icon: "🎤", unlockAt: 20 },
+    { id: "yuna", name: "Yuna Star", title: "Dançarina das Gemas", rarity: "★★★★", icon: "💃", unlockAt: 50 },
+    { id: "kira", name: "Kira Vox", title: "Ataque Super Refrão", rarity: "★★★★", icon: "🌈", unlockAt: 100 },
+    { id: "lumi", name: "Lumi", title: "Mascote Lunar", rarity: "★★★", icon: "🐺", unlockAt: 160 },
+    { id: "aria", name: "Aria Queen", title: "Capitã da World Tour", rarity: "★★★★★", icon: "👑", unlockAt: 250 },
+    { id: "sol", name: "Sol Pop", title: "Carta Holográfica", rarity: "★★★★★", icon: "✨", unlockAt: 400 }
   ]
 };
