@@ -45,6 +45,10 @@ function qsa(selector) {
   return [...document.querySelectorAll(selector)];
 }
 
+function audio() {
+  return window.SW_AUDIO || { init() {}, setMode() {}, playSfx() {} };
+}
+
 function renderHud() {
   qs("#playerName").textContent = state.playerName;
   qs("#xp").textContent = state.xp;
@@ -56,6 +60,7 @@ function switchScreen(name) {
   qsa(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.screen === name));
   qsa(".screen").forEach(screen => screen.classList.remove("active"));
   qs(`#screen-${name}`).classList.add("active");
+  audio().setMode(name === "mission" ? "battle" : "menu");
 }
 
 function getPair(pairId = state.activePairId) {
@@ -80,6 +85,7 @@ function renderWorlds() {
     button.addEventListener("click", () => {
       state.activePairId = button.dataset.startPair;
       saveState();
+      audio().playSfx("open");
       switchScreen("mission");
       newMission();
     });
@@ -112,6 +118,7 @@ function newMission() {
     answer: word.correct
   };
 
+  audio().setMode("battle");
   qs("#missionBadge").textContent = `${pair.title} · ${pair.code || ""}`;
   qs("#missionMode").textContent = randomMode();
   qs("#monsterName").textContent = pair.monster || "Glitch";
@@ -155,12 +162,14 @@ function answer(choice) {
       ? `SUPER REFRÃO! Combo x${state.streak}. O público está ao rubro!`
       : `Boom! Glitch derrotado. Combo x${state.streak}.`;
     qs("#feedback").className = "feedback good pop";
+    audio().playSfx(state.streak >= 5 ? "card" : "correct");
     burstConfetti(state.streak >= 5 ? 32 : 14);
   } else {
     state.streak = 0;
     state.pairStats[pairId].wrong += 1;
     qs("#feedback").textContent = `O glitch escapou por pouco. A palavra final era “${currentChallenge.answer}”.`;
     qs("#feedback").className = "feedback bad pop";
+    audio().playSfx("wrong");
   }
 
   saveState();
@@ -203,6 +212,7 @@ function setupLab() {
     event.currentTarget.reset();
     saveState();
     renderCustomErrors();
+    audio().playSfx("card");
     burstConfetti(18);
   });
 
@@ -303,16 +313,23 @@ function escapeHtml(value) {
 qsa(".tab").forEach(tab => tab.addEventListener("click", () => switchScreen(tab.dataset.screen)));
 qsa("[data-screen-jump]").forEach(button => button.addEventListener("click", () => {
   switchScreen(button.dataset.screenJump);
+  audio().playSfx("open");
   if (button.dataset.screenJump === "mission") newMission();
 }));
 
-qs("#newMissionBtn").addEventListener("click", newMission);
+qs("#newMissionBtn").addEventListener("click", () => {
+  audio().playSfx("open");
+  newMission();
+});
+
 qs("#hintBtn").addEventListener("click", () => {
   const pair = currentChallenge?.pair || getPair();
   qs("#feedback").textContent = pair.hint;
   qs("#feedback").className = "feedback pop";
+  audio().playSfx("open");
 });
 
+audio().init();
 renderHud();
 renderWorlds();
 renderRewards();
