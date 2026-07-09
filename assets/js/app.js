@@ -1,4 +1,4 @@
-const STORAGE_KEY = "sound-warriors-state-v2";
+const STORAGE_KEY = "sound-warriors-state-v3";
 
 const defaultState = {
   playerName: "Simone",
@@ -7,22 +7,41 @@ const defaultState = {
   completed: 0,
   streak: 0,
   activePairId: "fv",
+  activeMode: "choose",
   customErrors: [],
-  pairStats: {}
+  pairStats: {},
+  modeStats: {},
+  wordStats: {}
 };
 
 let state = loadState();
 let currentChallenge = null;
+let bossQueue = [];
 
 function loadState() {
   try {
-    const v2 = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (v2) return { ...defaultState, ...v2 };
+    const v3 = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (v3) return hydrateState(v3);
+
+    const v2 = JSON.parse(localStorage.getItem("sound-warriors-state-v2"));
+    if (v2) return hydrateState(v2);
+
     const v1 = JSON.parse(localStorage.getItem("sound-warriors-state-v1"));
-    return { ...defaultState, ...(v1 || {}) };
+    return hydrateState(v1 || {});
   } catch {
-    return { ...defaultState };
+    return hydrateState({});
   }
+}
+
+function hydrateState(value) {
+  return {
+    ...defaultState,
+    ...value,
+    customErrors: Array.isArray(value.customErrors) ? value.customErrors : [],
+    pairStats: value.pairStats || {},
+    modeStats: value.modeStats || {},
+    wordStats: value.wordStats || {}
+  };
 }
 
 function saveState() {
@@ -49,6 +68,19 @@ function audio() {
   return window.SW_AUDIO || { init() {}, setMode() {}, playSfx() {} };
 }
 
+function todayNumber() {
+  return Math.floor(Date.now() / 86400000);
+}
+
+function normalize(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
 function renderHud() {
   qs("#playerName").textContent = state.playerName;
   qs("#xp").textContent = state.xp;
@@ -69,17 +101,24 @@ function getPair(pairId = state.activePairId) {
 
 function renderWorlds() {
   const worlds = qs("#worlds");
-  worlds.innerHTML = window.SW_DATA.soundPairs.map(pair => `
-    <article class="world" style="--world-glow:${pair.glow || "rgba(255,47,179,0.35)"}">
-      <div>
-        <div class="crystal">${pair.icon}</div>
-        <p class="kicker">Portal ${pair.code || pair.id.toUpperCase()}</p>
-        <h3>${pair.title}</h3>
-        <p>${pair.description}</p>
-      </div>
-      <button class="primary" data-start-pair="${pair.id}">Entrar na arena</button>
-    </article>
-  `).join("");
+  worlds.innerHTML = window.SW_DATA.soundPairs.map(pair => {
+    const stats = state.pairStats[pair.id] || { correct: 0, wrong: 0 };
+    const total = stats.correct + stats.wrong;
+    const pct = total ? Math.round((stats.correct / total) * 100) : 0;
+    return `
+      <article class="world" style="--world-glow:${pair.glow || "rgba(255,47,179,0.35)"}">
+        <div>
+          <div class="crystal">${pair.icon}</div>
+          <p class="kicker">Portal ${pair.code || pair.id.toUpperCase()}</p>
+          <h3>${pair.title}</h3>
+          <p>${pair.description}</p>
+          <div class="world-meter"><span style="width:${pct}%"></span></div>
+          <small>${total ? `${pct}% de acerto neste portal` : "Ainda sem treino"}</small>
+        </div>
+        <button class="primary" data-start-pair="${pair.id}">Entrar na arena</button>
+      </article>
+    `;
+  }).join("");
 
   qsa("[data-start-pair]").forEach(button => {
     button.addEventListener("click", () => {
@@ -92,52 +131,196 @@ function renderWorlds() {
   });
 }
 
+function renderModeChips() {
+  const el = qs("#modeChips");
+  el.innerHTML = window.SW_DATA.missionModes.map(mode => `
+    <button class="mode-chip ${state.activeMode === mode.id ? "active" : ""}" type="button" data-mode="${mode.id}">${mode.label}</button>
+  `).join("");
+
+  qsa("[data-mode]").forEach(button => {
+    button.addEventListener("click", () => {
+      state.activeMode = button.dataset.mode;
+      bossQueue = [];
+      saveState();
+      renderModeChips();
+      newMission();
+    });
+  });
+}
+
 function allWordsForPair(pair) {
-  const code = pair.code || pair.title.replace("Cristal ", "");
+  const code = pair.code || pair.id.toUpperCase();
   const custom = state.customErrors
-    .filter(error => error.pair === code || error.pair.toLowerCase().replace("/", "") === pair.id)
+    .filter(error => error.pair === code || normalize(error.pair).replace("/", "") === pair.id)
     .map(error => ({
+      id: error.id,
       correct: error.correct,
       distractor: error.wrong,
+      target: inferTarget(pair, error.correct, error.wrong),
       prompt: error.sentence ? `O glitch apareceu nesta cena: “${error.sentence}”` : `Neutraliza o glitch da palavra: ${error.correct}`,
-      custom: true
+      sentence: error.sentence,
+      custom: true,
+      errorType: error.errorType || "erro real",
+      source: error.source || "Backstage"
     }));
 
-  return [...pair.words, ...custom];
+  return [...pair.words, ...custom].map((word, index) => ({
+    ...word,
+    key: wordKey(pair.id, word, index)
+  }));
+}
+
+function wordKey(pairId, word, index = 0) {
+  return `${pairId}:${normalize(word.correct)}:${normalize(word.distractor)}:${word.id || index}`;
+}
+
+function inferTarget(pair, correct, wrong) {
+  const c = normalize(correct);
+  const w = normalize(wrong);
+  return pair.letters.find(letter => c.includes(letter) && !w.includes(letter)) || pair.letters.find(letter => c.includes(letter)) || pair.letters[0];
+}
+
+function selectWord(pair) {
+  const words = allWordsForPair(pair);
+  if (!words.length) return null;
+
+  const today = todayNumber();
+  const due = words.filter(word => {
+    const s = state.wordStats[word.key];
+    return !s || !s.reviewAfter || s.reviewAfter <= today || s.wrong > 0;
+  });
+
+  const pool = due.length ? due : words;
+  pool.sort((a, b) => scoreWord(b) - scoreWord(a));
+
+  const top = pool.slice(0, Math.min(4, pool.length));
+  return top[Math.floor(Math.random() * top.length)];
+}
+
+function scoreWord(word) {
+  const s = state.wordStats[word.key] || { correct: 0, wrong: 0, streak: 0 };
+  let score = 10;
+  score += word.custom ? 8 : 0;
+  score += s.wrong * 5;
+  score -= s.streak * 2;
+  return score;
+}
+
+function currentMode() {
+  return window.SW_DATA.missionModes.find(mode => mode.id === state.activeMode) || window.SW_DATA.missionModes[0];
 }
 
 function newMission() {
   const pair = getPair();
-  const words = allWordsForPair(pair);
-  const word = words[Math.floor(Math.random() * words.length)];
-  const choices = shuffle([word.correct, word.distractor]);
+  let mode = currentMode();
 
-  currentChallenge = {
-    pair,
-    word,
-    answer: word.correct
-  };
+  if (mode.id === "boss") {
+    const next = nextBossChallenge(pair);
+    if (!next) {
+      qs("#challengeTitle").textContent = "Boss ainda bloqueado";
+      qs("#challengePrompt").textContent = "Guarda pelo menos 3 glitches reais neste portal para abrir o Boss semanal.";
+      qs("#choices").innerHTML = "";
+      qs("#feedback").textContent = "Vai ao Backstage e regista erros reais encontrados em textos ou ditados.";
+      qs("#feedback").className = "feedback";
+      return;
+    }
+    currentChallenge = next;
+    mode = { id: next.mode, label: "Boss", title: "Boss dos glitches reais" };
+  } else {
+    const word = selectWord(pair);
+    if (!word) return;
+    currentChallenge = { pair, word, answer: word.correct, mode: mode.id };
+  }
 
   audio().setMode("battle");
   qs("#missionBadge").textContent = `${pair.title} · ${pair.code || ""}`;
-  qs("#missionMode").textContent = randomMode();
+  qs("#missionMode").textContent = mode.label;
   qs("#monsterName").textContent = pair.monster || "Glitch";
-  qs("#challengeTitle").textContent = randomTitle();
-  qs("#challengePrompt").textContent = word.prompt;
+  qs("#challengeTitle").textContent = mode.title || randomTitle();
   qs("#feedback").textContent = "";
   qs("#feedback").className = "feedback";
-  qs("#choices").innerHTML = choices.map(choice => `<button class="choice" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`).join("");
 
-  qsa("[data-choice]").forEach(button => {
-    button.addEventListener("click", () => answer(button.dataset.choice));
-  });
-
+  renderChallenge(currentChallenge);
   updateBattleExtras();
 }
 
-function randomMode() {
-  const modes = ["Pop Battle", "Glitch Rush", "Crystal Stage", "Super Refrão", "Neon Duel"];
-  return modes[Math.floor(Math.random() * modes.length)];
+function nextBossChallenge(pair) {
+  if (!bossQueue.length) {
+    const real = allWordsForPair(pair).filter(word => word.custom);
+    if (real.length < 3) return null;
+    bossQueue = shuffle(real).slice(0, 5).map((word, index) => ({
+      pair,
+      word,
+      answer: word.correct,
+      mode: index % 2 === 0 ? "correct" : "write",
+      boss: true,
+      bossStep: index + 1,
+      bossTotal: Math.min(5, real.length)
+    }));
+  }
+  return bossQueue.shift();
+}
+
+function renderChallenge(challenge) {
+  const { pair, word, mode } = challenge;
+
+  if (mode === "choose") {
+    qs("#challengePrompt").textContent = word.prompt;
+    const choices = shuffle([word.correct, word.distractor]);
+    qs("#choices").innerHTML = choices.map(choice => `<button class="choice" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button>`).join("");
+    qsa("[data-choice]").forEach(button => button.addEventListener("click", () => answer(button.dataset.choice)));
+    return;
+  }
+
+  if (mode === "letter") {
+    const missing = hideTarget(word.correct, word.target, pair.letters);
+    qs("#challengePrompt").innerHTML = `<span class="prompt-small">${escapeHtml(word.prompt)}</span><strong class="missing-word">${escapeHtml(missing)}</strong>`;
+    qs("#choices").innerHTML = pair.letters.map(letter => `<button class="choice" data-choice="${escapeHtml(letter)}">${escapeHtml(letter.toUpperCase())}</button>`).join("");
+    qsa("[data-choice]").forEach(button => button.addEventListener("click", () => answer(button.dataset.choice, word.target)));
+    return;
+  }
+
+  if (mode === "write") {
+    qs("#challengePrompt").textContent = `Escuta/lê a pista e escreve a palavra final: ${word.prompt}`;
+    qs("#choices").innerHTML = inputMissionHtml("Escreve aqui a palavra final", "Validar palavra");
+    bindInputMission();
+    return;
+  }
+
+  if (mode === "correct") {
+    const sentence = word.sentence || `O glitch escreveu “${word.distractor}”.`;
+    qs("#challengePrompt").innerHTML = `<span class="prompt-small">Corrige só o glitch principal.</span><strong class="glitch-sentence">${escapeHtml(sentence)}</strong>`;
+    qs("#choices").innerHTML = inputMissionHtml("Escreve a palavra corrigida", "Corrigir glitch");
+    bindInputMission();
+    return;
+  }
+}
+
+function hideTarget(correct, target, letters) {
+  const ordered = [...letters].sort((a, b) => b.length - a.length);
+  const needle = target || ordered.find(letter => normalize(correct).includes(letter)) || ordered[0];
+  const re = new RegExp(needle, "i");
+  return correct.replace(re, "_");
+}
+
+function inputMissionHtml(placeholder, buttonLabel) {
+  return `
+    <div class="input-mission">
+      <input id="typedAnswer" autocomplete="off" placeholder="${escapeHtml(placeholder)}">
+      <button id="submitTypedAnswer" class="primary" type="button">${escapeHtml(buttonLabel)}</button>
+    </div>
+  `;
+}
+
+function bindInputMission() {
+  const input = qs("#typedAnswer");
+  const submit = qs("#submitTypedAnswer");
+  if (!input || !submit) return;
+  input.focus();
+  submit.addEventListener("click", () => answer(input.value));
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter") answer(input.value);
+  });
 }
 
 function randomTitle() {
@@ -145,18 +328,18 @@ function randomTitle() {
   return titles[Math.floor(Math.random() * titles.length)];
 }
 
-function answer(choice) {
+function answer(choice, overrideAnswer = null) {
   if (!currentChallenge) return;
 
-  const pairId = currentChallenge.pair.id;
-  state.pairStats[pairId] = state.pairStats[pairId] || { correct: 0, wrong: 0 };
+  const expected = overrideAnswer || currentChallenge.answer;
+  const correct = normalize(choice) === normalize(expected);
+  recordResult(currentChallenge, correct);
 
-  if (choice === currentChallenge.answer) {
+  if (correct) {
     state.streak += 1;
     state.completed += 1;
-    state.xp += 15 + Math.min(state.streak, 12);
+    state.xp += 15 + Math.min(state.streak, 12) + modeBonus(currentChallenge.mode);
     state.coins += 10 + Math.floor(state.streak / 3);
-    state.pairStats[pairId].correct += 1;
 
     qs("#feedback").textContent = state.streak >= 5
       ? `SUPER REFRÃO! Combo x${state.streak}. O público está ao rubro!`
@@ -166,14 +349,47 @@ function answer(choice) {
     burstConfetti(state.streak >= 5 ? 32 : 14);
   } else {
     state.streak = 0;
-    state.pairStats[pairId].wrong += 1;
-    qs("#feedback").textContent = `O glitch escapou por pouco. A palavra final era “${currentChallenge.answer}”.`;
+    qs("#feedback").textContent = `O glitch escapou por pouco. A resposta-alvo era “${expected}”.`;
     qs("#feedback").className = "feedback bad pop";
     audio().playSfx("wrong");
   }
 
   saveState();
-  setTimeout(newMission, choice === currentChallenge.answer ? 1150 : 1650);
+  renderWorlds();
+  setTimeout(newMission, correct ? 1250 : 1900);
+}
+
+function modeBonus(mode) {
+  return { choose: 0, letter: 3, write: 7, correct: 7, boss: 15 }[mode] || 0;
+}
+
+function recordResult(challenge, isCorrect) {
+  const pairId = challenge.pair.id;
+  const mode = challenge.mode;
+  const key = challenge.word.key;
+  const today = todayNumber();
+
+  state.pairStats[pairId] = state.pairStats[pairId] || { correct: 0, wrong: 0 };
+  state.modeStats[mode] = state.modeStats[mode] || { correct: 0, wrong: 0 };
+  state.wordStats[key] = state.wordStats[key] || { correct: 0, wrong: 0, streak: 0, mastered: false, reviewAfter: today };
+
+  const wordStats = state.wordStats[key];
+  if (isCorrect) {
+    state.pairStats[pairId].correct += 1;
+    state.modeStats[mode].correct += 1;
+    wordStats.correct += 1;
+    wordStats.streak += 1;
+    wordStats.reviewAfter = today + Math.min(7, Math.max(1, wordStats.streak));
+    wordStats.mastered = wordStats.streak >= 5;
+  } else {
+    state.pairStats[pairId].wrong += 1;
+    state.modeStats[mode].wrong += 1;
+    wordStats.wrong += 1;
+    wordStats.streak = 0;
+    wordStats.mastered = false;
+    wordStats.reviewAfter = today;
+  }
+  wordStats.lastSeen = new Date().toISOString();
 }
 
 function renderRewards() {
@@ -201,6 +417,8 @@ function setupLab() {
       correct: String(form.get("correct")).trim(),
       wrong: String(form.get("wrong")).trim(),
       pair: String(form.get("pair")).trim(),
+      errorType: String(form.get("errorType")).trim(),
+      source: String(form.get("source")).trim(),
       sentence: String(form.get("sentence")).trim(),
       difficulty: String(form.get("difficulty")).trim(),
       createdAt: new Date().toISOString()
@@ -230,13 +448,17 @@ function setupLab() {
 function renderCustomErrors() {
   const list = qs("#customErrors");
   if (!state.customErrors.length) {
-    list.innerHTML = `<article class="error-item"><p>Ainda não há glitches personalizados. Quando encontrares um, guarda-o aqui e ele entra nas próximas batalhas.</p></article>`;
+    list.innerHTML = `<article class="error-item"><p>Ainda não há glitches personalizados. Quando encontrares um erro real num texto, ditado ou leitura, guarda-o aqui e ele entra nas próximas batalhas.</p></article>`;
     return;
   }
 
   list.innerHTML = state.customErrors.map(error => `
     <article class="error-item">
       <p><strong>${escapeHtml(error.correct)}</strong> venceu <strong>${escapeHtml(error.wrong)}</strong> · Portal ${escapeHtml(error.pair)} · ${escapeHtml(error.difficulty)}</p>
+      <div class="error-tags">
+        <span>${escapeHtml(error.errorType || "erro real")}</span>
+        <span>${escapeHtml(error.source || "Backstage")}</span>
+      </div>
       <p>${escapeHtml(error.sentence || "Sem cena registada.")}</p>
     </article>
   `).join("");
@@ -248,21 +470,47 @@ function renderProgress() {
     const s = state.pairStats[pair.id] || { correct: 0, wrong: 0 };
     const total = s.correct + s.wrong;
     const pct = total ? Math.round((s.correct / total) * 100) : 0;
+    const label = total < 6 ? "em arranque" : pct >= 85 ? "estável" : pct >= 65 ? "em treino" : "crítico";
     return `
       <article class="stat">
         <h3>${pair.title}</h3>
         <div class="big">${pct}%</div>
-        <p>${s.correct} vitórias · ${s.wrong} glitches fugiram</p>
+        <p>${s.correct} vitórias · ${s.wrong} glitches fugiram · ${label}</p>
       </article>
     `;
   }).join("");
 
+  const modeCards = window.SW_DATA.missionModes.filter(mode => mode.id !== "boss").map(mode => {
+    const s = state.modeStats[mode.id] || { correct: 0, wrong: 0 };
+    const total = s.correct + s.wrong;
+    const pct = total ? Math.round((s.correct / total) * 100) : 0;
+    return `<article class="stat compact-stat"><h3>${mode.label}</h3><div class="big">${pct}%</div><p>${total} tentativas</p></article>`;
+  }).join("");
+
+  const mastered = Object.values(state.wordStats).filter(w => w.mastered).length;
+  const focus = weakestPairLabel();
+
   stats.innerHTML = `
+    <article class="stat"><h3>Próximo foco</h3><div class="big small-big">${escapeHtml(focus)}</div><p>Escolhe este portal na próxima sessão curta.</p></article>
     <article class="stat"><h3>Batalhas ganhas</h3><div class="big">${state.completed}</div><p>Total de vitórias no palco.</p></article>
     <article class="stat"><h3>Combo atual</h3><div class="big">${state.streak}</div><p>Sequência viva de ataques certos.</p></article>
+    <article class="stat"><h3>Palavras dominadas</h3><div class="big">${mastered}</div><p>5 acertos seguidos com revisão espaçada.</p></article>
     <article class="stat"><h3>Glitches próprios</h3><div class="big">${state.customErrors.length}</div><p>Criados no Backstage.</p></article>
     ${pairCards}
+    ${modeCards}
   `;
+}
+
+function weakestPairLabel() {
+  let weakest = null;
+  window.SW_DATA.soundPairs.forEach(pair => {
+    const s = state.pairStats[pair.id] || { correct: 0, wrong: 0 };
+    const total = s.correct + s.wrong;
+    const pct = total ? s.correct / total : 0;
+    const score = total < 4 ? -1 : pct;
+    if (!weakest || score < weakest.score) weakest = { score, label: pair.code || pair.title };
+  });
+  return weakest ? weakest.label : "F/V";
 }
 
 function updateBattleExtras() {
@@ -332,6 +580,7 @@ qs("#hintBtn").addEventListener("click", () => {
 audio().init();
 renderHud();
 renderWorlds();
+renderModeChips();
 renderRewards();
 renderCustomErrors();
 renderProgress();
