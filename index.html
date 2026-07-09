@@ -8,6 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="assets/css/styles.css">
   <link rel="stylesheet" href="assets/css/audio.css">
+  <link rel="stylesheet" href="assets/css/therapy-upgrades.css">
 </head>
 <body>
   <div id="openingStage" class="opening-stage" role="dialog" aria-modal="true" aria-labelledby="openingTitle">
@@ -35,7 +36,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Neon Pop Quest</p>
         <h1>Sound Warriors</h1>
-        <p class="subtitle">Entra no palco, derrota glitches de palavras e desbloqueia cartas raras da tua equipa.</p>
+        <p class="subtitle">Treina sons, letras e escrita real: escolhe, completa, escreve, corrige glitches e vence Bosses semanais.</p>
         <div class="hero-actions">
           <button class="primary big" data-screen-jump="mission">Começar batalha</button>
           <button class="ghost big" data-screen-jump="map">Escolher mundo</button>
@@ -72,7 +73,7 @@
             <p class="kicker">World Tour</p>
             <h2>Cidades Neon</h2>
           </div>
-          <p>Escolhe uma arena. Cada cidade tem glitches diferentes para derrotar.</p>
+          <p>Escolhe uma arena. Cada cidade trabalha um som, uma letra ou um tipo de erro.</p>
         </div>
         <div id="worlds" class="world-grid"></div>
       </section>
@@ -82,7 +83,11 @@
           <section class="mission-card battle-card">
             <div class="mission-meta">
               <span id="missionBadge">Cristal F/V</span>
-              <span id="missionMode">Pop Battle</span>
+              <span id="missionMode">Escolher</span>
+            </div>
+            <div class="mode-panel" aria-label="Tipo de missão">
+              <p class="kicker">Modo de treino</p>
+              <div id="modeChips" class="mode-chips"></div>
             </div>
             <div class="versus-row">
               <div class="fighter hero-fighter">
@@ -113,7 +118,7 @@
           <aside class="side-quest-panel">
             <p class="kicker">Missão rápida</p>
             <h3>Objetivo do show</h3>
-            <p>Ganhar 5 combos para ativar o Super Refrão e abrir uma carta nova.</p>
+            <p>Usa sessões curtas: 5 a 10 minutos. O jogo dá prioridade aos glitches reais e revê palavras que ainda não estão dominadas.</p>
             <div class="mini-reward">🎁 Próxima carta aos <strong id="nextRewardAt">20</strong> gemas</div>
             <div class="sound-note">🎧 Usa auscultadores se quiseres mais ambiente de concerto.</div>
           </aside>
@@ -137,17 +142,17 @@
             <p class="kicker">Só para o Mestre</p>
             <h2>Backstage dos Glitches</h2>
           </div>
-          <p>Aqui adicionas palavras reais sem parecer que estás a preparar uma ficha.</p>
+          <p>Regista erros reais de textos, ditados ou leitura. Estes erros passam a entrar nas batalhas e no Boss.</p>
         </div>
 
         <form id="errorForm" class="lab-form">
           <label>
             Palavra final
-            <input required name="correct" placeholder="ex.: fazer">
+            <input required name="correct" placeholder="ex.: fogueira">
           </label>
           <label>
             Glitch que apareceu
-            <input required name="wrong" placeholder="ex.: faser">
+            <input required name="wrong" placeholder="ex.: vogueira">
           </label>
           <label>
             Portal
@@ -159,12 +164,30 @@
               <option value="CH/J">CH/J</option>
               <option value="C/G">C/G</option>
               <option value="L/R">L/R</option>
+              <option value="Grupos">Grupos consonânticos</option>
               <option value="Outro">Outro</option>
             </select>
           </label>
           <label>
-            Cena onde apareceu
-            <textarea name="sentence" rows="3" placeholder="ex.: Eu vou faser uma história."></textarea>
+            Tipo de erro
+            <select name="errorType">
+              <option value="substituição">Substituição</option>
+              <option value="omissão">Omissão</option>
+              <option value="inversão">Inversão</option>
+              <option value="adição">Adição</option>
+              <option value="acentuação">Acentuação</option>
+              <option value="outro">Outro</option>
+            </select>
+          </label>
+          <label>
+            Origem
+            <select name="source">
+              <option value="texto livre">Texto livre</option>
+              <option value="ditado">Ditado</option>
+              <option value="leitura">Leitura</option>
+              <option value="trabalho escolar">Trabalho escolar</option>
+              <option value="jogo">Jogo</option>
+            </select>
           </label>
           <label>
             Força do glitch
@@ -173,6 +196,10 @@
               <option value="média">Médio</option>
               <option value="difícil">Boss</option>
             </select>
+          </label>
+          <label class="wide-field">
+            Cena onde apareceu
+            <textarea name="sentence" rows="3" placeholder="ex.: A menina viu uma vogueira no jardim."></textarea>
           </label>
           <button class="primary" type="submit">Criar novo glitch</button>
         </form>
@@ -190,7 +217,7 @@
             <p class="kicker">Radar do Mestre</p>
             <h2>Evolução</h2>
           </div>
-          <p>Vista discreta para perceberes que portais precisam de mais batalhas.</p>
+          <p>Vista discreta para perceber que portais, modos e palavras precisam de mais treino.</p>
         </div>
         <div id="progressCards" class="stats-grid"></div>
       </section>
