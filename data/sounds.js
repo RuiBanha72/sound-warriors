@@ -167,3 +167,52 @@ window.SW_DATA = {
     { id: "nova", name: "Nova Mestre", title: "Caçadora de Glitches", rarity: "★★★★★★", icon: "🏆", unlockAt: 650 }
   ]
 };
+
+const EXTRA_WORDS = {
+  fv: [
+    ["vela", "fela", "v", "Luz pequena que ajuda a ver no escuro."], ["festa", "vesta", "f", "Celebração depois de uma grande vitória."],
+    ["varanda", "faranda", "v", "Lugar da casa com vista para a rua."], ["fada", "vada", "f", "Personagem mágica de uma história."],
+    ["vagem", "fagem", "v", "Parte verde onde crescem ervilhas."], ["fogo", "vogo", "f", "Chama que aquece a fogueira."]
+  ],
+  sz: [
+    ["zebra", "sebra", "z", "Animal com riscas pretas e brancas."], ["sopa", "zopa", "s", "Comida quente feita numa panela."],
+    ["tesoura", "tezoura", "s", "Ferramenta para cortar papel."], ["azar", "asar", "z", "Quando algo não corre como esperávamos."],
+    ["sapato", "zapato", "s", "Protege o pé ao caminhar."], ["azeite", "aseite", "z", "Usa-se numa salada ou para cozinhar."]
+  ],
+  bp: [
+    ["pipa", "biba", "p", "Brinquedo que voa preso por um fio."], ["bico", "pico", "b", "Parte pontiaguda de uma ave."],
+    ["pote", "bote", "p", "Recipiente onde se guardam objetos pequenos."], ["banco", "panco", "b", "Lugar onde nos sentamos no jardim."],
+    ["pomba", "bomba", "p", "Ave que pode voar numa praça."], ["barba", "parpa", "b", "Pelos que crescem no rosto de algumas pessoas."]
+  ],
+  td: [
+    ["tenda", "denda", "t", "Abrigo de pano usado num acampamento."], ["doce", "toce", "d", "Alimento com sabor açucarado."],
+    ["tapete", "dapete", "t", "Peça de tecido colocada no chão."], ["duna", "tuna", "d", "Monte de areia junto ao mar."],
+    ["tartaruga", "dardaruga", "t", "Animal com carapaça que anda devagar."], ["dado", "tato", "d", "Cubo com pontos usado em jogos."]
+  ],
+  cg: [
+    ["cama", "gama", "c", "Lugar onde dormimos à noite."], ["galo", "calo", "g", "Ave que canta de manhã."],
+    ["copo", "gopo", "c", "Recipiente usado para beber água."], ["gota", "cota", "g", "Pequena porção de água da chuva."],
+    ["coroa", "goroa", "c", "Objeto que um rei pode usar na cabeça."], ["goma", "coma", "g", "Doce pequeno e elástico."]
+  ],
+  chj: [
+    ["chá", "já", "ch", "Bebida quente feita com folhas ou ervas."], ["jardim", "chardim", "j", "Espaço com flores e plantas."],
+    ["chapéu", "japéu", "ch", "Protege a cabeça do sol."], ["joelho", "choelho", "j", "Articulação no meio da perna."],
+    ["chocolate", "jocolate", "ch", "Doce feito com cacau."], ["jantar", "chantar", "j", "Refeição do fim do dia."]
+  ],
+  lr: [
+    ["lago", "rago", "l", "Lugar com água rodeado de terra."], ["rei", "lei", "r", "Pessoa que usa uma coroa num reino."],
+    ["laranja", "raranja", "l", "Fruta redonda e de cor viva."], ["relógio", "lelógio", "r", "Objeto que mostra as horas."],
+    ["lobo", "robo", "l", "Animal que vive em alcateia."], ["rampa", "lampa", "r", "Plano inclinado que ajuda a subir."]
+  ],
+  grupos: [
+    ["prenda", "pernda", "pr", "Presente oferecido numa festa."], ["trigo", "tirgo", "tr", "Cereal usado para fazer pão."],
+    ["cravo", "carvo", "cr", "Flor que pode ter um perfume forte."], ["planta", "palnta", "pl", "Ser vivo que cresce na terra."],
+    ["bloco", "bolco", "bl", "Conjunto de folhas para desenhar."], ["fruta", "furta", "fr", "Alimento como maçã ou pera."]
+  ]
+};
+
+Object.entries(EXTRA_WORDS).forEach(([pairId, words]) => {
+  const pair = window.SW_DATA.soundPairs.find(item => item.id === pairId);
+  if (!pair) return;
+  pair.words.push(...words.map(([correct, distractor, target, prompt]) => ({ correct, distractor, target, prompt })));
+});

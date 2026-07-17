@@ -17,6 +17,7 @@ const defaultState = {
 let state = loadState();
 let currentChallenge = null;
 let bossQueue = [];
+const recentWordKeysByPair = {};
 
 function loadState() {
   try {
@@ -193,8 +194,12 @@ function selectWord(pair) {
   const pool = due.length ? due : words;
   pool.sort((a, b) => scoreWord(b) - scoreWord(a));
 
-  const top = pool.slice(0, Math.min(4, pool.length));
-  return top[Math.floor(Math.random() * top.length)];
+  const recent = recentWordKeysByPair[pair.id] || [];
+  const fresh = pool.filter(word => !recent.includes(word.key));
+  const candidates = fresh.length ? fresh : pool;
+  const selected = candidates[Math.floor(Math.random() * candidates.length)];
+  recentWordKeysByPair[pair.id] = [...recent, selected.key].slice(-Math.min(8, Math.max(1, words.length - 1)));
+  return selected;
 }
 
 function scoreWord(word) {
