@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Leitura Rápida — Sound Warriors</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/reading.css">
+</head>
+<body>
+  <div class="reading-shell">
+    <header class="reading-header">
+      <div>
+        <p class="kicker">Sound Warriors</p>
+        <h1>Leitura Rápida</h1>
+        <p>Um minuto para tornar a leitura mais fluida. A comparação é sempre contigo próprio.</p>
+      </div>
+      <a class="ghost reading-back" href="index.html">← Voltar ao jogo</a>
+    </header>
+
+    <main>
+      <section id="setupPanel" class="reading-card">
+        <div class="section-title">
+          <div><p class="kicker">Preparar missão</p><h2>Quem vai ler?</h2></div>
+          <p>Os resultados ficam separados por perfil neste dispositivo.</p>
+        </div>
+        <div class="profile-row">
+          <select id="profileSelect" aria-label="Escolher perfil"></select>
+          <button id="addProfileBtn" class="secondary" type="button">+ Novo perfil</button>
+        </div>
+
+        <div class="reading-options">
+          <label>Escolha do texto
+            <select id="choiceMode">
+              <option value="manual">Escolher texto</option>
+              <option value="random">Escolha aleatória</option>
+            </select>
+          </label>
+          <label id="textSelectLabel">Texto
+            <select id="textSelect"></select>
+          </label>
+        </div>
+        <div id="textInfo" class="text-info"></div>
+        <button id="prepareBtn" class="primary big" type="button">Preparar leitura</button>
+      </section>
+
+      <section id="readyPanel" class="reading-card hidden">
+        <p class="kicker">Tudo pronto</p>
+        <h2 id="readyTitle">O texto está escondido</h2>
+        <p>Quando carregares em começar, haverá uma contagem de 3 até 0. O texto aparece durante exatamente 60 segundos.</p>
+        <button id="startBtn" class="primary big" type="button">Começar</button>
+        <button id="cancelReadyBtn" class="ghost" type="button">Voltar</button>
+      </section>
+
+      <section id="countdownPanel" class="reading-card countdown-card hidden" aria-live="assertive">
+        <div id="countdownValue" class="countdown-value">3</div>
+      </section>
+
+      <section id="readingPanel" class="reading-stage hidden">
+        <div class="reading-stage-head">
+          <span id="readingProfile"></span>
+          <span id="timer" class="timer">60</span>
+        </div>
+        <h2 id="readingTitle"></h2>
+        <div id="readingText" class="reading-text"></div>
+      </section>
+
+      <section id="finishPanel" class="reading-card hidden">
+        <div class="finish-icon">✨</div>
+        <p class="kicker">Missão concluída</p>
+        <h2>Como sentiste esta leitura?</h2>
+        <p>Não faz mal se houve hesitações. O objetivo é o texto ficar mais fácil de cada vez.</p>
+        <div class="feeling-row">
+          <button class="feeling-btn" data-feeling="Correu bem" type="button">😊 Correu bem</button>
+          <button class="feeling-btn" data-feeling="Foi desafiante" type="button">💪 Foi desafiante</button>
+          <button class="feeling-btn" data-feeling="Quero tentar outra vez" type="button">🔁 Quero tentar outra vez</button>
+        </div>
+      </section>
+
+      <section id="markPanel" class="reading-card hidden">
+        <p class="kicker">Guardar resultado</p>
+        <h2>Clica na última palavra que leste</h2>
+        <p class="mark-help">Podes percorrer o texto. Ao clicar numa palavra, ela fica marcada e a plataforma conta automaticamente todas as palavras até esse ponto.</p>
+        <div id="markText" class="mark-text"></div>
+        <div id="selectedSummary" class="selected-summary">Ainda não selecionaste uma palavra.</div>
+        <button id="saveAttemptBtn" class="primary big" type="button" disabled>Guardar tentativa</button>
+      </section>
+
+      <section id="resultPanel" class="reading-card hidden">
+        <p class="kicker">Resultado</p>
+        <h2 id="resultHeadline"></h2>
+        <div id="resultStats" class="result-stats"></div>
+        <p id="resultMessage" class="result-message"></p>
+        <div class="actions">
+          <button id="repeatBtn" class="primary" type="button">Repetir o mesmo texto</button>
+          <button id="newReadingBtn" class="secondary" type="button">Escolher outro texto</button>
+        </div>
+      </section>
+
+      <section class="reading-card history-card">
+        <div class="section-title">
+          <div><p class="kicker">Evolução</p><h2>Histórico do perfil</h2></div>
+          <p id="historyProfile"></p>
+        </div>
+        <div id="summaryCards" class="summary-grid"></div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </main>
+  </div>
+  <script src="data/reading-texts.js"></script>
+  <script src="assets/js/reading.js"></script>
+</body>
+</html>
