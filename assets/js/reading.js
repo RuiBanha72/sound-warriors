@@ -1,227 +1,103 @@
 (() => {
-  const STORE = 'sound-warriors-reading-v2';
-  const texts = Array.isArray(window.SW_READING_TEXTS) ? window.SW_READING_TEXTS : [];
-  const panels = ['setupPanel','readyPanel','countdownPanel','readingPanel','finishPanel','markPanel','resultPanel'];
+  'use strict';
+  const KEY = 'sound-warriors-reading-v2', VERSION = 2, DURATION = 60;
   const $ = id => document.getElementById(id);
-  let timer = null;
-  let activeText = null;
-  let remaining = 60;
-  let selectedWordIndex = -1;
-  let feeling = '';
-  const state = load();
+  const texts = Array.isArray(window.SW_READING_TEXTS) ? window.SW_READING_TEXTS.filter(t => t && t.id && t.title && t.text) : [];
+  const state = loadState();
+  let activeText, selectedIndex = -1, feeling = '', timerId, countdownId, endsAt;
+  const panels = ['setupPanel', 'readyPanel', 'countdownPanel', 'readingPanel', 'finishPanel', 'markPanel', 'resultPanel'];
 
-  function load() {
+  function loadState() {
+    const fallback = { version: VERSION, profiles: [{ id: 'perfil-inicial', name: 'Perfil inicial' }], activeProfileId: 'perfil-inicial', attempts: [] };
     try {
-      const saved = JSON.parse(localStorage.getItem(STORE));
-      if (saved && Array.isArray(saved.profiles) && Array.isArray(saved.attempts)) return saved;
-    } catch (_) {}
-    return {
-      profiles: [{ id: 'simone', name: 'Simone' }],
-      activeProfileId: 'simone',
-      attempts: []
-    };
+      const saved = JSON.parse(localStorage.getItem(KEY));
+      if (!saved || !Array.isArray(saved.profiles) || !Array.isArray(saved.attempts)) return fallback;
+      const profiles = saved.profiles.filter(p => p && typeof p.id === 'string' && typeof p.name === 'string' && p.name.trim());
+      const attempts = saved.attempts.filter(a => a && typeof a.profileId === 'string' && typeof a.textId === 'string' && Number.isFinite(Number(a.wordsRead)));
+      if (!profiles.length) return fallback;
+      return { version: VERSION, profiles, attempts, activeProfileId: profiles.some(p => p.id === saved.activeProfileId) ? saved.activeProfileId : profiles[0].id };
+    } catch (_) { return fallback; }
   }
-
-  function save() {
-    localStorage.setItem(STORE, JSON.stringify(state));
-  }
-
-  function show(id) {
-    panels.forEach(panel => $(panel).classList.toggle('hidden', panel !== id));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function currentProfile() {
-    return state.profiles.find(p => p.id === state.activeProfileId) || state.profiles[0];
-  }
-
-  function wordCount(text) {
-    return text.trim().split(/\s+/).filter(Boolean).length;
-  }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { announce('Não foi possível guardar neste dispositivo.'); } }
+  function profile() { return state.profiles.find(p => p.id === state.activeProfileId) || state.profiles[0]; }
+  function words(text) { return String(text).trim().match(/\S+/g) || []; }
+  function show(id) { panels.forEach(p => $(p).classList.toggle('hidden', p !== id)); window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
+  function announce(message) { const el = $('readingStatus'); if (el) el.textContent = message; }
+  function element(tag, text, className) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (className) e.className = className; return e; }
+  function clearTimers() { clearInterval(timerId); clearTimeout(countdownId); timerId = countdownId = null; }
 
   function renderProfiles() {
-    $('profileSelect').innerHTML = state.profiles.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-    $('profileSelect').value = state.activeProfileId;
+    const select = $('profileSelect'); select.replaceChildren();
+    state.profiles.forEach(p => { const option = element('option', p.name); option.value = p.id; select.append(option); });
+    select.value = state.activeProfileId;
   }
-
   function renderTexts() {
-    $('textSelect').innerHTML = texts.map(t => `<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('');
+    const select = $('textSelect'); select.replaceChildren();
+    texts.forEach(t => { const option = element('option', t.title); option.value = t.id; select.append(option); });
+    $('prepareBtn').disabled = !texts.length;
     renderTextInfo();
   }
-
+  function selectedText() { return texts.find(t => t.id === $('textSelect').value) || texts[0]; }
   function renderTextInfo() {
-    const text = texts.find(t => t.id === $('textSelect').value) || texts[0];
-    $('textInfo').textContent = text ? `${text.level} · ${text.theme} · ${wordCount(text.text)} palavras` : 'Ainda não existem textos disponíveis.';
+    const t = selectedText();
+    $('textInfo').textContent = t ? `${t.level} · ${t.theme} · ${words(t.text).length} palavras` : 'Ainda não existem textos disponíveis. Verifica o ficheiro de textos.';
   }
-
-  function chooseText() {
-    if (!texts.length) return null;
-    if ($('choiceMode').value === 'random') return texts[Math.floor(Math.random() * texts.length)];
-    return texts.find(t => t.id === $('textSelect').value) || texts[0];
+  function prepare() {
+    activeText = $('choiceMode').value === 'random' ? texts[Math.floor(Math.random() * texts.length)] : selectedText();
+    if (!activeText) return announce('Ainda não existem textos disponíveis.');
+    $('readyTitle').textContent = activeText.title; show('readyPanel');
   }
-
-  function prepareReading() {
-    activeText = chooseText();
-    if (!activeText) return alert('Não existem textos disponíveis.');
-    $('readyTitle').textContent = activeText.title;
-    show('readyPanel');
-  }
-
   function startCountdown() {
-    show('countdownPanel');
-    let count = 3;
-    $('countdownValue').textContent = count;
-    const countdown = setInterval(() => {
-      count -= 1;
-      $('countdownValue').textContent = count;
-      if (count <= 0) {
-        clearInterval(countdown);
-        startReading();
-      }
-    }, 1000);
+    clearTimers(); let count = 3; show('countdownPanel');
+    const next = () => { $('countdownValue').textContent = count; announce(count ? `Começa em ${count}` : 'Começa agora'); if (count-- > 0) countdownId = setTimeout(next, 1000); else startReading(); };
+    next();
   }
-
   function startReading() {
-    remaining = 60;
-    $('timer').textContent = remaining;
-    $('readingProfile').textContent = currentProfile().name;
-    $('readingTitle').textContent = activeText.title;
-    $('readingText').textContent = activeText.text;
-    show('readingPanel');
-    timer = setInterval(() => {
-      remaining -= 1;
-      $('timer').textContent = remaining;
-      if (remaining <= 0) finishReading();
-    }, 1000);
+    endsAt = Date.now() + DURATION * 1000;
+    $('readingProfile').textContent = profile().name; $('readingTitle').textContent = activeText.title; $('readingText').textContent = activeText.text;
+    show('readingPanel'); updateTimer(); timerId = setInterval(updateTimer, 200);
   }
-
-  function finishReading() {
-    clearInterval(timer);
-    timer = null;
-    $('readingText').textContent = '';
-    show('finishPanel');
+  function updateTimer() {
+    const seconds = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)); $('timer').textContent = seconds;
+    if (!seconds) finishReading();
   }
-
-  function buildMarkingPanel() {
-    selectedWordIndex = -1;
-    $('saveAttemptBtn').disabled = true;
-    $('selectedSummary').textContent = 'Ainda não selecionaste uma palavra.';
-    const words = activeText.text.trim().split(/\s+/);
-    $('markText').innerHTML = words.map((word, index) => `<span class="mark-word" data-index="${index}">${escapeHtml(word)}</span> `).join('');
-    $('markText').querySelectorAll('.mark-word').forEach(span => {
-      span.addEventListener('click', () => selectWord(Number(span.dataset.index)));
-    });
+  function finishReading() { clearTimers(); $('readingText').textContent = ''; announce('Terminou o minuto de leitura.'); show('finishPanel'); }
+  function buildMarking() {
+    selectedIndex = -1; $('saveAttemptBtn').disabled = true; $('selectedSummary').textContent = 'Ainda não selecionaste uma palavra.';
+    const box = $('markText'); box.replaceChildren();
+    words(activeText.text).forEach((word, index) => { const b = element('button', word, 'mark-word'); b.type = 'button'; b.dataset.index = index; b.setAttribute('aria-label', `Selecionar a palavra ${index + 1}: ${word}`); b.addEventListener('click', () => selectWord(index)); box.append(b, document.createTextNode(' ')); });
     show('markPanel');
   }
-
   function selectWord(index) {
-    selectedWordIndex = index;
-    $('markText').querySelectorAll('.mark-word').forEach((span, i) => {
-      span.classList.toggle('before-selected', i < index);
-      span.classList.toggle('selected', i === index);
-    });
-    const count = index + 1;
-    $('selectedSummary').textContent = `Última palavra selecionada: ${count}.ª palavra · ${count} palavras lidas.`;
-    $('saveAttemptBtn').disabled = false;
+    selectedIndex = index; [...$('markText').querySelectorAll('.mark-word')].forEach((b, i) => { b.classList.toggle('before-selected', i < index); b.classList.toggle('selected', i === index); b.setAttribute('aria-pressed', String(i === index)); });
+    $('selectedSummary').textContent = `Última palavra selecionada: ${index + 1}.ª palavra · ${index + 1} palavras lidas.`; $('saveAttemptBtn').disabled = false;
   }
-
   function saveAttempt() {
-    if (selectedWordIndex < 0) return;
-    const wordsRead = selectedWordIndex + 1;
-    const previous = state.attempts
-      .filter(a => a.profileId === state.activeProfileId && a.textId === activeText.id)
-      .sort((a,b) => new Date(b.date) - new Date(a.date))[0];
-    const attempt = {
-      id: `${Date.now()}`,
-      profileId: state.activeProfileId,
-      textId: activeText.id,
-      textTitle: activeText.title,
-      wordsRead,
-      feeling,
-      date: new Date().toISOString()
-    };
-    state.attempts.push(attempt);
-    save();
-    const delta = previous ? wordsRead - previous.wordsRead : null;
-    $('resultHeadline').textContent = `${wordsRead} palavras em 1 minuto`;
-    $('resultStats').innerHTML = `
-      <div class="result-stat"><span>Palavras</span><strong>${wordsRead}</strong></div>
-      <div class="result-stat"><span>Texto</span><strong>${wordCount(activeText.text)}</strong></div>
-      <div class="result-stat"><span>Evolução</span><strong>${delta === null ? '—' : `${delta >= 0 ? '+' : ''}${delta}`}</strong></div>`;
-    $('resultMessage').textContent = delta === null
-      ? 'Esta foi a primeira leitura deste texto. O próximo resultado será comparado apenas com este.'
-      : delta > 0
-        ? `Leste mais ${delta} palavra${delta === 1 ? '' : 's'} do que na tentativa anterior.`
-        : delta === 0
-          ? 'Mantiveste o mesmo resultado. A consistência também é progresso.'
-          : 'Hoje o texto exigiu mais esforço. Repete-o noutro dia, sem pressão.';
-    renderHistory();
-    show('resultPanel');
+    if (selectedIndex < 0 || !activeText) return;
+    const wordsRead = selectedIndex + 1, prior = state.attempts.filter(a => a.profileId === profile().id && a.textId === activeText.id).sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0];
+    const attempt = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, version: VERSION, profileId: profile().id, textId: activeText.id, textTitle: activeText.title, wordsRead, totalWords: words(activeText.text).length, durationSeconds: DURATION, feeling, date: new Date().toISOString() };
+    state.attempts.push(attempt); persist(); const delta = prior ? wordsRead - Number(prior.wordsRead) : null;
+    $('resultHeadline').textContent = `${wordsRead} palavras em 1 minuto`; renderResult(wordsRead, attempt.totalWords, delta); renderHistory(); show('resultPanel');
   }
-
+  function renderResult(read, total, delta) {
+    const box = $('resultStats'); box.replaceChildren(); [['Palavras lidas', read], ['Total do texto', total], ['Em relação à anterior', delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta}`]].forEach(([label, value]) => { const d = element('div', null, 'result-stat'); d.append(element('span', label), element('strong', String(value))); box.append(d); });
+    $('resultMessage').textContent = delta == null ? 'Esta é a primeira leitura deste texto. A próxima comparação será apenas com esta tentativa.' : delta > 0 ? `Leste mais ${delta} palavra${delta === 1 ? '' : 's'} do que na tentativa anterior deste texto.` : delta === 0 ? 'Mantiveste o resultado. A consistência também é progresso.' : 'Hoje este texto exigiu mais esforço. Isso faz parte do treino; podes voltar a ele com calma.';
+  }
   function renderHistory() {
-    const profile = currentProfile();
-    const attempts = state.attempts.filter(a => a.profileId === profile.id).sort((a,b) => new Date(b.date) - new Date(a.date));
-    $('historyProfile').textContent = profile.name;
-    const best = attempts.length ? Math.max(...attempts.map(a => a.wordsRead)) : 0;
-    const average = attempts.length ? Math.round(attempts.reduce((sum,a) => sum + a.wordsRead, 0) / attempts.length) : 0;
-    $('summaryCards').innerHTML = `
-      <div class="summary-card"><span>Tentativas</span><strong>${attempts.length}</strong></div>
-      <div class="summary-card"><span>Melhor marca</span><strong>${best}</strong></div>
-      <div class="summary-card"><span>Média</span><strong>${average}</strong></div>`;
-    $('historyList').innerHTML = attempts.length ? attempts.slice(0, 12).map(a => `
-      <div class="history-item">
-        <div><strong>${escapeHtml(a.textTitle)}</strong><br><small>${new Date(a.date).toLocaleDateString('pt-PT')} · ${escapeHtml(a.feeling || 'Sem indicação')}</small></div>
-        <span>${a.wordsRead} palavras</span>
-      </div>`).join('') : '<p>Ainda não existem leituras guardadas para este perfil.</p>';
+    const attempts = state.attempts.filter(a => a.profileId === profile().id).sort((a,b) => Date.parse(b.date) - Date.parse(a.date));
+    $('historyProfile').textContent = profile().name; const total = attempts.length, best = total ? Math.max(...attempts.map(a => Number(a.wordsRead))) : 0, average = total ? Math.round(attempts.reduce((n,a) => n + Number(a.wordsRead), 0) / total) : 0;
+    const cards = $('summaryCards'); cards.replaceChildren(); [['Tentativas', total], ['Melhor resultado', best], ['Média', average]].forEach(([label,value]) => { const d = element('div', null, 'summary-card'); d.append(element('span', label), element('strong', String(value))); cards.append(d); });
+    const list = $('historyList'); list.replaceChildren(); if (!total) { list.append(element('p', 'Ainda não existem leituras guardadas para este perfil.')); return; }
+    attempts.slice(0, 12).forEach(a => { const row = element('div', null, 'history-item'), left = element('div'); left.append(element('strong', a.textTitle || 'Texto sem título'), element('br'), element('small', `${new Date(a.date).toLocaleDateString('pt-PT')} · ${a.feeling || 'Sem indicação'}`)); row.append(left, element('span', `${a.wordsRead} palavras`)); list.append(row); });
   }
+  function addProfile() { const name = $('newProfileName').value.trim(); const error = $('profileError'); if (!name) { error.textContent = 'Escreve um nome para o perfil.'; return; } if (state.profiles.some(p => p.name.localeCompare(name, 'pt-PT', { sensitivity: 'accent' }) === 0)) { error.textContent = 'Já existe um perfil com esse nome.'; return; } const id = `perfil-${Date.now()}-${Math.random().toString(36).slice(2,7)}`; state.profiles.push({ id, name }); state.activeProfileId = id; persist(); $('profileDialog').close(); renderProfiles(); renderHistory(); }
+  function reset() { clearTimers(); feeling = ''; selectedIndex = -1; show('setupPanel'); }
 
-  function addProfile() {
-    const name = prompt('Nome do novo perfil:');
-    if (!name || !name.trim()) return;
-    const id = `${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
-    state.profiles.push({ id, name: name.trim() });
-    state.activeProfileId = id;
-    save();
-    renderProfiles();
-    renderHistory();
-  }
-
-  function resetToSetup() {
-    feeling = '';
-    selectedWordIndex = -1;
-    show('setupPanel');
-  }
-
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
-  }
-
-  $('profileSelect').addEventListener('change', e => {
-    state.activeProfileId = e.target.value;
-    save();
-    renderHistory();
-  });
-  $('addProfileBtn').addEventListener('click', addProfile);
-  $('choiceMode').addEventListener('change', e => {
-    $('textSelectLabel').classList.toggle('hidden', e.target.value === 'random');
-  });
-  $('textSelect').addEventListener('change', renderTextInfo);
-  $('prepareBtn').addEventListener('click', prepareReading);
-  $('startBtn').addEventListener('click', startCountdown);
-  $('cancelReadyBtn').addEventListener('click', resetToSetup);
-  document.querySelectorAll('.feeling-btn').forEach(button => {
-    button.addEventListener('click', () => {
-      feeling = button.dataset.feeling || '';
-      buildMarkingPanel();
-    });
-  });
-  $('saveAttemptBtn').addEventListener('click', saveAttempt);
-  $('repeatBtn').addEventListener('click', () => show('readyPanel'));
-  $('newReadingBtn').addEventListener('click', resetToSetup);
-
-  renderProfiles();
-  renderTexts();
-  renderHistory();
-  show('setupPanel');
+  $('profileSelect').addEventListener('change', e => { state.activeProfileId = e.target.value; persist(); renderHistory(); });
+  $('addProfileBtn').addEventListener('click', () => { $('profileError').textContent = ''; $('newProfileName').value = ''; $('profileDialog').showModal(); $('newProfileName').focus(); });
+  $('profileForm').addEventListener('submit', e => { e.preventDefault(); addProfile(); }); $('profileCancelBtn').addEventListener('click', () => $('profileDialog').close());
+  $('choiceMode').addEventListener('change', e => $('textSelectLabel').classList.toggle('hidden', e.target.value === 'random'));
+  $('textSelect').addEventListener('change', renderTextInfo); $('prepareBtn').addEventListener('click', prepare); $('startBtn').addEventListener('click', startCountdown); $('cancelReadyBtn').addEventListener('click', reset);
+  document.querySelectorAll('.feeling-btn').forEach(b => b.addEventListener('click', () => { feeling = b.dataset.feeling || ''; buildMarking(); })); $('saveAttemptBtn').addEventListener('click', saveAttempt); $('repeatBtn').addEventListener('click', () => show('readyPanel')); $('newReadingBtn').addEventListener('click', reset); window.addEventListener('beforeunload', clearTimers);
+  renderProfiles(); renderTexts(); renderHistory(); show('setupPanel'); if (!texts.length) announce('O ficheiro de textos não foi carregado ou não contém textos válidos.');
 })();

@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="assets/css/reading.css">
 </head>
 <body>
+  <p id="readingStatus" class="sr-only" aria-live="assertive"></p>
   <div class="reading-shell">
     <header class="reading-header">
       <div>
@@ -25,18 +26,18 @@
           <p>Os resultados ficam separados por perfil neste dispositivo.</p>
         </div>
         <div class="profile-row">
-          <select id="profileSelect" aria-label="Escolher perfil"></select>
+          <label class="sr-only" for="profileSelect">Escolher perfil</label><select id="profileSelect"></select>
           <button id="addProfileBtn" class="secondary" type="button">+ Novo perfil</button>
         </div>
 
         <div class="reading-options">
-          <label>Escolha do texto
+          <label for="choiceMode">Escolha do texto
             <select id="choiceMode">
               <option value="manual">Escolher texto</option>
               <option value="random">Escolha aleatória</option>
             </select>
           </label>
-          <label id="textSelectLabel">Texto
+          <label id="textSelectLabel" for="textSelect">Texto
             <select id="textSelect"></select>
           </label>
         </div>
@@ -47,7 +48,7 @@
       <section id="readyPanel" class="reading-card hidden">
         <p class="kicker">Tudo pronto</p>
         <h2 id="readyTitle">O texto está escondido</h2>
-        <p>Quando carregares em começar, haverá uma contagem de 3 até 0. O texto aparece durante exatamente 60 segundos.</p>
+        <p>Hoje vamos ver se o texto fica mais fácil para o teu cérebro. Não é uma corrida contra ninguém. Quando carregares em começar, haverá uma contagem de 3, 2, 1. O texto aparece durante exatamente 60 segundos.</p>
         <button id="startBtn" class="primary big" type="button">Começar</button>
         <button id="cancelReadyBtn" class="ghost" type="button">Voltar</button>
       </section>
@@ -59,7 +60,7 @@
       <section id="readingPanel" class="reading-stage hidden">
         <div class="reading-stage-head">
           <span id="readingProfile"></span>
-          <span id="timer" class="timer">60</span>
+          <span id="timer" class="timer" aria-live="polite">60</span>
         </div>
         <h2 id="readingTitle"></h2>
         <div id="readingText" class="reading-text"></div>
@@ -107,6 +108,15 @@
       </section>
     </main>
   </div>
+  <dialog id="profileDialog" class="profile-dialog" aria-labelledby="profileDialogTitle">
+    <form id="profileForm" method="dialog">
+      <h2 id="profileDialogTitle">Criar perfil</h2>
+      <label for="newProfileName">Nome</label>
+      <input id="newProfileName" name="name" autocomplete="name" maxlength="40" required>
+      <p id="profileError" role="alert"></p>
+      <div class="actions"><button id="profileCancelBtn" class="ghost" type="button">Cancelar</button><button class="primary" type="submit">Criar perfil</button></div>
+    </form>
+  </dialog>
   <script src="data/reading-texts.js"></script>
   <script src="assets/js/reading.js"></script>
 </body>
