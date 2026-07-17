@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leitura Relâmpago — Sound Warriors</title>
+  <meta name="description" content="Aventura de leitura cronometrada de 60 segundos com perfis e histórico de evolução.">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/reading-speed.css">
+</head>
+<body>
+  <div class="stage-lights" aria-hidden="true"></div>
+  <div class="app-shell reading-shell">
+    <header class="reading-hero">
+      <div>
+        <p class="eyebrow">Nova aventura</p>
+        <h1>Leitura<br>Relâmpago</h1>
+        <p class="subtitle">Lê durante 60 segundos, marca a última palavra e acompanha a tua evolução. A corrida é sempre contra o teu próprio resultado.</p>
+        <a class="ghost big back-link" href="index.html">← Voltar aos Mundos</a>
+      </div>
+      <div class="reading-badge" aria-hidden="true">⚡📖</div>
+    </header>
+
+    <main class="reading-main">
+      <section id="setupPanel" class="reading-card setup-card">
+        <div class="section-title compact">
+          <div><p class="kicker">Preparar missão</p><h2>Quem vai ler?</h2></div>
+        </div>
+        <div id="profileList" class="profile-list"></div>
+        <form id="profileForm" class="profile-form">
+          <input id="profileName" maxlength="24" placeholder="Novo perfil (ex.: Rui)">
+          <button class="secondary" type="submit">Adicionar perfil</button>
+        </form>
+
+        <div class="setup-grid">
+          <label>Escolha do texto
+            <select id="textMode">
+              <option value="random">Escolha aleatória</option>
+              <option value="manual">Escolher texto</option>
+            </select>
+          </label>
+          <label id="textSelectWrap" class="hidden">Texto
+            <select id="textSelect"></select>
+          </label>
+        </div>
+        <div id="selectedTextInfo" class="selected-text-info"></div>
+        <button id="prepareBtn" class="primary big full-button" type="button">Preparar leitura</button>
+      </section>
+
+      <section id="readyPanel" class="reading-card center-card hidden">
+        <p class="kicker">Tudo pronto</p>
+        <h2 id="readyTitle">A história está escondida</h2>
+        <p>Quando carregares em começar, aparece a contagem 3, 2, 1. O texto só surge depois do zero.</p>
+        <button id="startBtn" class="primary big" type="button">Começar</button>
+      </section>
+
+      <section id="countdownPanel" class="reading-card center-card hidden">
+        <div id="countdownNumber" class="countdown-number">3</div>
+        <p>Prepara-te…</p>
+      </section>
+
+      <section id="readingPanel" class="reading-card reading-session hidden" aria-live="polite">
+        <div class="reading-session-header">
+          <span id="readingTitle"></span>
+          <span class="timer-pill"><strong id="timerValue">60</strong> s</span>
+        </div>
+        <article id="readingText" class="reading-text"></article>
+      </section>
+
+      <section id="reflectionPanel" class="reading-card center-card hidden">
+        <div class="finish-icon">✨</div>
+        <h2>Missão concluída!</h2>
+        <p id="reflectionQuestion">Como sentiste esta leitura?</p>
+        <div class="feeling-buttons">
+          <button type="button" data-feeling="Correu bem">😊 Correu bem</button>
+          <button type="button" data-feeling="Foi desafiante">💪 Foi desafiante</button>
+          <button type="button" data-feeling="Quero repetir">🔁 Quero repetir</button>
+        </div>
+      </section>
+
+      <section id="markPanel" class="reading-card hidden">
+        <div class="section-title compact">
+          <div><p class="kicker">Registar resultado</p><h2>Qual foi a última palavra?</h2></div>
+        </div>
+        <p>Clica na última palavra que conseguiste ler. Podes corrigir a seleção antes de guardar.</p>
+        <div id="markText" class="mark-text"></div>
+        <div id="markResult" class="mark-result">Ainda não selecionaste uma palavra.</div>
+        <button id="saveAttemptBtn" class="primary big full-button" type="button" disabled>Guardar tentativa</button>
+      </section>
+
+      <section id="resultPanel" class="reading-card center-card hidden">
+        <p class="kicker">Resultado</p>
+        <div id="resultNumber" class="result-number">0</div>
+        <h2>palavras em 60 segundos</h2>
+        <p id="resultMessage"></p>
+        <div class="result-actions">
+          <button id="repeatBtn" class="primary" type="button">Repetir este texto</button>
+          <button id="newReadingBtn" class="secondary" type="button">Nova leitura</button>
+        </div>
+      </section>
+
+      <section class="reading-card history-card">
+        <div class="section-title compact">
+          <div><p class="kicker">Evolução pessoal</p><h2>Histórico</h2></div>
+        </div>
+        <div id="summaryCards" class="reading-summary"></div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="data/reading-texts.js"></script>
+  <script src="assets/js/reading-speed.js"></script>
+</body>
+</html>
