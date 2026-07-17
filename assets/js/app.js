@@ -443,6 +443,21 @@ function setupLab() {
     link.click();
     URL.revokeObjectURL(url);
   });
+
+  qs("#resetDataBtn").addEventListener("click", () => {
+    const keepGlitches = [...state.customErrors];
+    if (!window.confirm(`Queres repor o jogo? As pontuações, evolução e perfis de leitura serão apagados. Os ${keepGlitches.length} Glitch(es) guardados no Backstage serão mantidos.`)) return;
+    state = { ...defaultState, customErrors: keepGlitches };
+    localStorage.removeItem("sound-warriors-state-v1");
+    localStorage.removeItem("sound-warriors-state-v2");
+    localStorage.removeItem("sound-warriors-reading-v2");
+    saveState();
+    renderWorlds();
+    renderModeChips();
+    renderCustomErrors();
+    qs("#feedback").textContent = "Dados repostos. Os Glitches adicionados continuam guardados.";
+    qs("#feedback").className = "feedback good";
+  });
 }
 
 function renderCustomErrors() {
