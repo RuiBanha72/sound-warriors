@@ -21,6 +21,14 @@
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { announce('Não foi possível guardar neste dispositivo.'); } }
   function profile() { return state.profiles.find(p => p.id === state.activeProfileId) || state.profiles[0]; }
   function words(text) { return String(text).trim().match(/\S+/g) || []; }
+  function formatForReading(text) {
+    const sentences = String(text).match(/[^.!?]+[.!?]+[”"]?/g) || [String(text)];
+    const paragraphs = [];
+    for (let index = 0; index < sentences.length; index += 3) {
+      paragraphs.push(sentences.slice(index, index + 3).join(' ').trim());
+    }
+    return paragraphs.join('\n\n');
+  }
   function show(id) { panels.forEach(p => $(p).classList.toggle('hidden', p !== id)); window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
   function announce(message) { const el = $('readingStatus'); if (el) el.textContent = message; }
   function element(tag, text, className) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (className) e.className = className; return e; }
@@ -54,7 +62,7 @@
   }
   function startReading() {
     endsAt = Date.now() + DURATION * 1000;
-    $('readingProfile').textContent = profile().name; $('readingTitle').textContent = activeText.title; $('readingText').textContent = activeText.text;
+    $('readingProfile').textContent = profile().name; $('readingTitle').textContent = activeText.title; $('readingText').textContent = formatForReading(activeText.text);
     show('readingPanel'); updateTimer(); timerId = setInterval(updateTimer, 200);
   }
   function updateTimer() {
@@ -65,7 +73,16 @@
   function buildMarking() {
     selectedIndex = -1; $('saveAttemptBtn').disabled = true; $('selectedSummary').textContent = 'Ainda não selecionaste uma palavra.';
     const box = $('markText'); box.replaceChildren();
-    words(activeText.text).forEach((word, index) => { const b = element('button', word, 'mark-word'); b.type = 'button'; b.dataset.index = index; b.setAttribute('aria-label', `Selecionar a palavra ${index + 1}: ${word}`); b.addEventListener('click', () => selectWord(index)); box.append(b, document.createTextNode(' ')); });
+    let index = 0;
+    (formatForReading(activeText.text).match(/\S+|\s+/g) || []).forEach(token => {
+      if (/^\s+$/.test(token)) { box.append(document.createTextNode(token)); return; }
+      const wordIndex = index;
+      const b = element('button', token, 'mark-word');
+      b.type = 'button'; b.dataset.index = wordIndex;
+      b.setAttribute('aria-label', `Selecionar a palavra ${wordIndex + 1}: ${token}`);
+      b.addEventListener('click', () => selectWord(wordIndex));
+      box.append(b); index += 1;
+    });
     show('markPanel');
   }
   function selectWord(index) {
