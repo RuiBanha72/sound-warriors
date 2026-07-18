@@ -449,9 +449,9 @@ function setupLab() {
     URL.revokeObjectURL(url);
   });
 
-  qs("#resetDataBtn").addEventListener("click", () => {
+  qs("#resetExercisesBtn").addEventListener("click", () => {
     const keepGlitches = [...state.customErrors];
-    if (!window.confirm(`Queres repor o jogo? As pontuações, evolução e perfis de leitura serão apagados. Os ${keepGlitches.length} Glitch(es) guardados no Backstage serão mantidos.`)) return;
+    if (!window.confirm(`Queres reiniciar os exercícios? Pontos, sequências, evolução e leituras serão apagados. Os ${keepGlitches.length} Glitch(es) guardados no Backstage serão mantidos.`)) return;
     state = { ...defaultState, customErrors: keepGlitches };
     localStorage.removeItem("sound-warriors-state-v1");
     localStorage.removeItem("sound-warriors-state-v2");
