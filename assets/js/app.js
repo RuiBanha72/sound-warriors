@@ -1,7 +1,7 @@
 const STORAGE_KEY = "sound-warriors-state-v3";
 
 const defaultState = {
-  playerName: "Simone",
+  playerName: "",
   xp: 0,
   coins: 0,
   completed: 0,
@@ -38,6 +38,7 @@ function hydrateState(value) {
   return {
     ...defaultState,
     ...value,
+    playerName: typeof value.playerName === "string" ? value.playerName.trim() : "",
     customErrors: Array.isArray(value.customErrors) ? value.customErrors : [],
     pairStats: value.pairStats || {},
     modeStats: value.modeStats || {},
@@ -83,10 +84,46 @@ function normalize(value) {
 }
 
 function renderHud() {
-  qs("#playerName").textContent = state.playerName;
+  qs("#playerName").textContent = state.playerName || "Definir nome";
   qs("#xp").textContent = state.xp;
   qs("#coins").textContent = state.coins;
   qs("#level").textContent = levelFromXp(state.xp);
+}
+
+function openPlayerNameDialog() {
+  const dialog = qs("#playerNameDialog");
+  if (!dialog || dialog.open) return;
+  qs("#playerNameInput").value = state.playerName || "";
+  qs("#playerNameError").textContent = "";
+  qs("#cancelPlayerNameBtn").hidden = !state.playerName.trim();
+  dialog.showModal();
+  qs("#playerNameInput").focus();
+}
+
+function setupPlayerName() {
+  const dialog = qs("#playerNameDialog");
+  const form = qs("#playerNameForm");
+  if (!dialog || !form) return;
+  qs("#playerName").addEventListener("click", openPlayerNameDialog);
+  qs("#cancelPlayerNameBtn").addEventListener("click", () => dialog.close());
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const name = qs("#playerNameInput").value.trim().replace(/\s+/g, " ");
+    if (!name) {
+      qs("#playerNameError").textContent = "Escreve um nome para continuar.";
+      return;
+    }
+    state.playerName = name;
+    saveState();
+    dialog.close();
+  });
+  if (state.playerName.trim()) return;
+  const entryButtons = [qs("#enterWithMusic"), qs("#enterSilent")].filter(Boolean);
+  if (entryButtons.length) {
+    entryButtons.forEach(button => button.addEventListener("click", () => window.setTimeout(openPlayerNameDialog, 0), { once: true }));
+  } else {
+    window.setTimeout(openPlayerNameDialog, 0);
+  }
 }
 
 function switchScreen(name) {
@@ -452,7 +489,7 @@ function setupLab() {
   qs("#resetExercisesBtn").addEventListener("click", () => {
     const keepGlitches = [...state.customErrors];
     if (!window.confirm(`Queres reiniciar os exercícios? Pontos, sequências, evolução e leituras serão apagados. Os ${keepGlitches.length} Glitch(es) guardados no Backstage serão mantidos.`)) return;
-    state = { ...defaultState, customErrors: keepGlitches };
+    state = { ...defaultState, playerName: state.playerName, customErrors: keepGlitches };
     localStorage.removeItem("sound-warriors-state-v1");
     localStorage.removeItem("sound-warriors-state-v2");
     localStorage.removeItem("sound-warriors-reading-v2");
@@ -598,6 +635,7 @@ qs("#hintBtn").addEventListener("click", () => {
 });
 
 audio().init();
+setupPlayerName();
 renderHud();
 renderWorlds();
 renderModeChips();

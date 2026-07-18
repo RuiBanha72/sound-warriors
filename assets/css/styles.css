@@ -185,6 +185,8 @@ a.ghost, a.tab {
 
 .danger:hover { filter: brightness(1.15); }
 
+.player-name-button{display:block;width:100%;margin:0 0 12px;padding:3px 8px;border:1px dashed transparent;border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-size:1.8rem;font-weight:950}.player-name-button:hover{border-color:var(--line);background:rgba(255,255,255,.1)}.player-name-button::after{content:" ✎";font-size:.9rem;color:var(--muted)}.player-name-dialog{width:min(440px,calc(100% - 28px));border:1px solid var(--line);border-radius:26px;padding:26px;color:var(--ink);background:#20142d;box-shadow:var(--shadow)}.player-name-dialog::backdrop{background:rgba(0,0,0,.72)}.player-name-dialog form{display:grid;gap:12px}.player-name-dialog h2{margin:0;font-size:2rem}.player-name-dialog p{color:var(--muted);margin:0}.player-name-dialog label{font-weight:900}.form-error{color:#ff8aa0!important;min-height:1.2em}
+
 .big { font-size: 1rem; padding: 16px 22px; }
 
 .primary:hover, .secondary:hover, .ghost:hover, .choice:hover, .world:hover, .reward:hover {

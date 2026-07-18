@@ -49,7 +49,7 @@
         <div class="idol-face">🎤</div>
         <div class="idol-info">
           <span class="rank-label">Rookie Star</span>
-          <strong id="playerName">Simone</strong>
+          <button id="playerName" class="player-name-button" type="button" aria-label="Editar nome do jogador">Definir nome</button>
           <div class="power-bars">
             <span>Nível <b id="level">1</b></span>
             <span>XP <b id="xp">0</b></span>
@@ -233,6 +233,18 @@
       </section>
     </main>
   </div>
+
+  <dialog id="playerNameDialog" class="player-name-dialog" aria-labelledby="playerNameDialogTitle">
+    <form id="playerNameForm">
+      <p class="kicker">Perfil de jogo</p>
+      <h2 id="playerNameDialogTitle">Como te chamas?</h2>
+      <p>Este nome aparece no teu perfil e guarda a tua evolução neste dispositivo.</p>
+      <label for="playerNameInput">Nome</label>
+      <input id="playerNameInput" name="playerName" autocomplete="name" maxlength="30" required>
+      <p id="playerNameError" class="form-error" role="alert"></p>
+      <div class="actions"><button id="cancelPlayerNameBtn" class="ghost" type="button">Cancelar</button><button class="primary" type="submit">Guardar nome</button></div>
+    </form>
+  </dialog>
 
   <script src="data/sounds.js"></script>
   <script src="assets/js/audio-engine.js"></script>
