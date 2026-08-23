@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <link rel="manifest" href="manifest.json">
+  <title>Familia</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111827;background:#f3f4f6}
+    *{box-sizing:border-box}body{margin:0}.app{max-width:560px;margin:auto;min-height:100vh;padding:24px 18px 96px}.eyebrow{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#6b7280}.hero h1{margin:.25rem 0 .4rem;font-size:2rem}.hero p{margin:0;color:#6b7280}.grid{display:grid;gap:14px;margin-top:22px}.card{background:#fff;border-radius:22px;padding:18px;box-shadow:0 8px 24px rgba(17,24,39,.06)}.card h2{font-size:1rem;margin:0 0 12px}.status{display:flex;align-items:center;gap:10px}.dot{width:10px;height:10px;border-radius:50%;background:#10b981}.muted{color:#6b7280;font-size:.9rem}.event{padding:11px 0;border-top:1px solid #eef0f3}.event:first-of-type{border-top:0}.event strong{display:block}.task{display:flex;gap:10px;align-items:flex-start;padding:8px 0}.task input{margin-top:3px}.nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-top:1px solid #e5e7eb;padding:10px 10px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center}.nav-inner{width:min(560px,100%);display:grid;grid-template-columns:repeat(5,1fr)}.nav a{text-decoration:none;color:#6b7280;text-align:center;font-size:.72rem;padding:8px 2px}.nav a.active{color:#111827;font-weight:700}.nav span{display:block;font-size:1.15rem;margin-bottom:2px}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="eyebrow">Agenda familiar</div>
+      <h1>Hoje</h1>
+      <p id="todayLabel">A carregar data...</p>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Escola</h2>
+        <div class="status"><span class="dot"></span><div><strong>Periodo sem aulas</strong><div class="muted">O calendario escolar sera configurado aqui.</div></div></div>
+      </article>
+
+      <article class="card">
+        <h2>Proximos acontecimentos</h2>
+        <div class="event"><strong>Inicio das aulas</strong><span class="muted">Adicionar data</span></div>
+        <div class="event"><strong>Atividade / teste</strong><span class="muted">Sem eventos configurados</span></div>
+      </article>
+
+      <article class="card">
+        <h2>Hoje e preciso levar</h2>
+        <div class="muted">As rotinas do dia vao aparecer automaticamente nesta area.</div>
+      </article>
+
+      <article class="card">
+        <h2>A tratar</h2>
+        <label class="task"><input type="checkbox"><span>Exemplo: entregar autorizacao</span></label>
+        <label class="task"><input type="checkbox"><span>Exemplo: comprar material escolar</span></label>
+      </article>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="Navegacao principal"><div class="nav-inner">
+    <a class="active" href="#"><span>⌂</span>Hoje</a>
+    <a href="#"><span>▦</span>Horario</a>
+    <a href="#"><span>□</span>Calendario</a>
+    <a href="#"><span>✓</span>Tarefas</a>
+    <a href="#"><span>•••</span>Mais</a>
+  </div></nav>
+
+  <script>
+    const formatter=new Intl.DateTimeFormat('pt-PT',{weekday:'long',day:'numeric',month:'long'});
+    const label=formatter.format(new Date());
+    document.getElementById('todayLabel').textContent=label.charAt(0).toUpperCase()+label.slice(1);
+    if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+  </script>
+</body>
+</html>
