@@ -1,0 +1,10 @@
+{
+  "name": "Family PWA",
+  "short_name": "Familia",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f8",
+  "theme_color": "#111827",
+  "lang": "pt-PT",
+  "description": "Agenda familiar com horario escolar, calendario, tarefas e rotinas."
+}
